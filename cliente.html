@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会员管理 - 超市</title>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load React and ReactDOM -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <!-- Load Babel for JSX transformation -->
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.25.6/babel.min.js"></script>
+  <!-- CDN Fallback Check -->
+  <script>
+    window.addEventListener('load', () => {
+      if (!window.React || !window.ReactDOM || !window.Babel) {
+        document.getElementById('error-message').classList.remove('hidden');
+        document.getElementById('error-message').innerText = 
+          '错误：无法加载必要资源。请检查网络连接或尝试使用其他浏览器（如 Chrome、Firefox）。';
+      }
+    });
+  </script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Fallback message if JavaScript fails -->
+  <div id="error-message" className="hidden text-center p-4 text-red-600">
+    错误：无法加载应用程序。请检查网络连接并刷新页面。
+  </div>
+  <!-- Root element for React -->
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Modal Component for Creating Customer
+    function CreateCustomerModal({ isOpen, onClose, onSave }) {
+      const [formData, setFormData] = React.useState({
+        id: '',
+        name: '',
+        taxNumber: '',
+        address: '',
+        phone: ''
+      });
+
+      const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+      };
+
+      const handleSubmit = () => {
+        if (!formData.id || !formData.name || !formData.phone) {
+          alert('客户代码、客户名称和电话为必填项！');
+          return;
+        }
+        onSave(formData);
+        setFormData({ id: '', name: '', taxNumber: '', address: '', phone: '' });
+        onClose();
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">创建客户</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户代码</label>
+                <input
+                  type="text"
+                  name="id"
+                  value={formData.id}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户代码"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户名称</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户名称"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户税号</label>
+                <input
+                  type="text"
+                  name="taxNumber"
+                  value={formData.taxNumber}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户税号"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户地址</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户地址"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户电话</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户电话"
+                  required
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end space-x-2">
+              <button
+                onClick={onClose}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Error Boundary Component
+    class ErrorBoundary extends React.Component {
+      state = { hasError: false, errorMessage: '' };
+      static getDerivedStateFromError(error) {
+        return { hasError: true, errorMessage: error.message };
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="text-red-600 p-4 text-center">
+              渲染应用程序时出错：{this.state.errorMessage}。请查看浏览器控制台或联系支持。
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    // Main Customer Component
+    function CustomerList() {
+      // Initialize customers from localStorage or empty array
+      const [customers, setCustomers] = React.useState(() => {
+        const savedCustomers = localStorage.getItem('customers');
+        return savedCustomers ? JSON.parse(savedCustomers) : [];
+      });
+      const [isModalOpen, setIsModalOpen] = React.useState(false);
+
+      // Save customers to localStorage whenever customers state changes
+      React.useEffect(() => {
+        localStorage.setItem('customers', JSON.stringify(customers));
+      }, [customers]);
+
+      const handleCreateCustomer = () => {
+        setIsModalOpen(true);
+      };
+
+      const handleSaveCustomer = (newCustomer) => {
+        setCustomers((prev) => [...prev, newCustomer]);
+      };
+
+      const handleCloseModal = () => {
+        setIsModalOpen(false);
+      };
+
+      return (
+        <div className="flex h-screen">
+          {/* Sidebar (consistent with index.html) */}
+          <div className="w-16 bg-gray-900 text-white flex flex-col items-center py-4 fixed h-full shadow-lg">
+            <h1 className="text-lg font-bold mb-8">POS</h1>
+            <nav className="flex flex-col space-y-4">
+              <a href="index.html" className="p-2 rounded-full hover:bg-gray-700" title="销售">
+                🛒
+              </a>
+              <button className="p-2 rounded-full hover:bg-gray-700" title="库存">
+                📦
+              </button>
+              <button className="p-2 rounded-full bg-blue-600" title="会员">
+                👤
+              </button>
+              <button className="p-2 rounded-full hover:bg-gray-700" title="支付">
+                💳
+              </button>
+              <button className="p-2 rounded-full hover:bg-gray-700" title="报告">
+                📊
+              </button>
+              <button className="p-2 rounded-full hover:bg-gray-700" title="用户">
+                🔒
+              </button>
+              <a href="tickets.html" className="p-2 rounded-full hover:bg-gray-700" title="票据">
+                🎫
+              </a>
+              <a href="deuda.html" className="p-2 rounded-full hover:bg-gray-700" title="挂单">
+                📋
+              </a>
+            </nav>
+          </div>
+          {/* Main Content */}
+          <div className="ml-16 w-full bg-white p-6">
+            <h2 className="text-xl font-bold mb-4">会员管理</h2>
+            {/* Create Customer Button */}
+            <div className="mb-6">
+              <button
+                onClick={handleCreateCustomer}
+                className="bg-blue-600 text-white p-3 rounded text-lg hover:bg-blue-700"
+              >
+                创建客户
+              </button>
+            </div>
+            {/* Customer List */}
+            <div className="bg-gray-50 p-4 rounded-lg shadow">
+              {customers.length === 0 ? (
+                <p className="text-gray-500">暂无客户数据。</p>
+              ) : (
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200">
+                      <th className="border p-3 text-left">客户代码</th>
+                      <th className="border p-3 text-left">客户名称</th>
+                      <th className="border p-3 text-left">客户税号</th>
+                      <th className="border p-3 text-left">客户地址</th>
+                      <th className="border p-3 text-left">客户电话</th>
+                      <th className="border p-3 text-left">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customers.map((customer) => (
+                      <tr key={customer.id}>
+                        <td className="border p-3">{customer.id}</td>
+                        <td className="border p-3">{customer.name}</td>
+                        <td className="border p-3">{customer.taxNumber || '-'}</td>
+                        <td className="border p-3">{customer.address || '-'}</td>
+                        <td className="border p-3">{customer.phone}</td>
+                        <td className="border p-3">
+                          <button
+                            className="bg-blue-500 text-white px-3 py-1 rounded mr-2 hover:bg-blue-600"
+                            onClick={() => alert(`编辑客户 ${customer.name} 功能待实现！`)}
+                          >
+                            编辑
+                          </button>
+                          <button
+                            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                            onClick={() => alert(`删除客户 ${customer.name} 功能待实现！`)}
+                          >
+                            删除
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            {/* Modal for Creating Customer */}
+            <CreateCustomerModal
+              isOpen={isModalOpen}
+              onClose={handleCloseModal}
+              onSave={handleSaveCustomer}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // Render the app using createRoot
+    const rootElement = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+      <ErrorBoundary>
+        <CustomerList />
+      </ErrorBoundary>
+    );
+  </script>
+</body>
+</html>

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>记账列表 - 超市</title>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load React and ReactDOM -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <!-- Load Babel for JSX transformation -->
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.25.6/babel.min.js"></script>
+  <!-- CDN Fallback Check -->
+  <script>
+    window.addEventListener('load', () => {
+      if (!window.React || !window.ReactDOM || !window.Babel) {
+        document.getElementById('error-message').classList.remove('hidden');
+        document.getElementById('error-message').innerText = 
+          '错误：无法加载必要资源。请检查网络连接或尝试使用其他浏览器（如 Chrome、Firefox）。';
+      }
+    });
+  </script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Fallback message if JavaScript fails -->
+  <div id="error-message" className="hidden text-center p-4 text-red-600">
+    错误：无法加载应用程序。请检查网络连接并刷新页面。
+  </div>
+  <!-- Root element for React -->
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Error Boundary Component
+    class ErrorBoundary extends React.Component {
+      state = { hasError: false, errorMessage: '' };
+      static getDerivedStateFromError(error) {
+        return { hasError: true, errorMessage: error.message };
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="text-red-600 p-4 text-center">
+              渲染应用程序时出错：{this.state.errorMessage}。请查看浏览器控制台或联系支持。
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    // Debt Details Modal Component
+    function DebtDetailsModal({ isOpen, onClose, transaction }) {
+      if (!isOpen || !transaction) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-1/2">
+            <h2 className="text-xl font-bold mb-4">记账详情</h2>
+            <p><strong>客户名称:</strong> {transaction.customerName}</p>
+            <p><strong>电话:</strong> {transaction.customerPhone}</p>
+            <p><strong>税号:</strong> {transaction.customerTaxNumber || '无'}</p>
+            <p><strong>日期:</strong> {transaction.timestamp}</p>
+            <p><strong>总金额:</strong> €{transaction.total.toFixed(2)}</p>
+            <p><strong>折扣:</strong> {transaction.discount}%</p>
+            <h3 className="text-lg font-semibold mt-4">购物车明细</h3>
+            <table className="w-full border-collapse mt-2">
+              <thead>
+                <tr className="bg-gray-200">
+                  <th className="border p-2 text-left">产品</th>
+                  <th className="border p-2 text-left">单价</th>
+                  <th className="border p-2 text-left">数量</th>
+                  <th className="border p-2 text-left">总计</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transaction.cart.map((item, index) => (
+                  <tr key={index}>
+                    <td className="border p-2">{item.name}</td>
+                    <td className="border p-2">€{item.price.toFixed(2)}</td>
+                    <td className="border p-2">{item.quantity}</td>
+                    <td className="border p-2">€{(item.price * item.quantity).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              onClick={onClose}
+              className="mt-4 bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Cash Payment Modal Component
+    function CashPaymentModal({ isOpen, onClose, onConfirm, transaction, selectedTransactions }) {
+      const [receivedAmount, setReceivedAmount] = React.useState("");
+
+      // Calculate total amount due
+      const amountDue = transaction ? transaction.total.toFixed(2) : "0.00";
+      
+      // Calculate change
+      const change = (parseFloat(receivedAmount) - parseFloat(amountDue)).toFixed(2);
+
+      // Handle number button clicks
+      const handleNumberClick = (number) => {
+        setReceivedAmount((prev) => prev + number);
+      };
+
+      // Handle delete button
+      const handleDelete = () => {
+        setReceivedAmount((prev) => prev.slice(0, -1));
+      };
+
+      // Handle confirm payment
+      const handleConfirmPayment = () => {
+        if (!receivedAmount || parseFloat(receivedAmount) < parseFloat(amountDue)) {
+          alert("实收金额不足以支付应付金额！");
+          return;
+        }
+
+        // Generate tickets based on selectedTransactions or single transaction
+        const tickets = selectedTransactions
+          ? selectedTransactions.map(tx => ({
+              id: tx.id, // 使用原始交易的 ID
+              timestamp: new Date().toLocaleString("zh-CN"),
+              total: tx.total,
+              items: tx.cart.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
+              discount: tx.discount,
+              paymentMethod: "cash",
+              receivedAmount: parseFloat(receivedAmount) / selectedTransactions.length, // 平均分配
+              change: parseFloat(change) >= 0 ? parseFloat(change) / selectedTransactions.length : 0,
+              customerName: tx.customerName,
+              customerPhone: tx.customerPhone,
+              customerTaxNumber: tx.customerTaxNumber || ''
+            }))
+          : [{
+              id: transaction.id, // 使用原始交易的 ID
+              timestamp: new Date().toLocaleString("zh-CN"),
+              total: parseFloat(amountDue),
+              items: transaction.cart.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
+              discount: transaction.discount,
+              paymentMethod: "cash",
+              receivedAmount: parseFloat(receivedAmount),
+              change: parseFloat(change) >= 0 ? parseFloat(change) : 0,
+              customerName: transaction.customerName,
+              customerPhone: transaction.customerPhone,
+              customerTaxNumber: transaction.customerTaxNumber || ''
+            }];
+
+        // Save tickets to localStorage for tickets.html
+        const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        localStorage.setItem("tickets", JSON.stringify([...savedTickets, ...tickets]));
+        onConfirm("cash", tickets);
+        setReceivedAmount("");
+        onClose();
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-1/2 flex">
+            {/* Left Panel: Amounts */}
+            <div className="w-1/2 pr-4 flex flex-col space-y-4">
+              <div>
+                <label className="block text-lg font-medium text-gray-700">应付金额</label>
+                <p className="text-2xl font-bold">€{amountDue}</p>
+              </div>
+              <div>
+                <label className="block text-lg font-medium text-gray-700">实收金额</label>
+                <p className="text-2xl font-bold">€{receivedAmount || "0.00"}</p>
+              </div>
+              <div>
+                <label className="block text-lg font-medium text-gray-700">找零</label>
+                <p className="text-2xl font-bold">€{receivedAmount ? (change >= 0 ? change : "0.00") : "0.00"}</p>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={onClose}
+                  className="bg-gray-500 text-white px-4 py-2 rounded w-full hover:bg-gray-600"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleConfirmPayment}
+                  className="bg-green-600 text-white px-4 py-2 rounded w-full hover:bg-green-700"
+                >
+                  确认
+                </button>
+              </div>
+            </div>
+            {/* Right Panel: Number Pad */}
+            <div className="w-1/2 grid grid-cols-3 gap-2">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((number) => (
+                <button
+                  key={number}
+                  onClick={() => handleNumberClick(number)}
+                  className="bg-gray-200 p-4 rounded text-lg hover:bg-gray-300"
+                >
+                  {number}
+                </button>
+              ))}
+              <button
+                onClick={handleDelete}
+                className="bg-red-500 text-white p-4 rounded text-lg hover:bg-red-600"
+              >
+                ←
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Payment Modal Component for Settling Debt
+    function SettlePaymentModal({ isOpen, onClose, onConfirm, transaction, selectedTransactions }) {
+      const [isCashModalOpen, setIsCashModalOpen] = React.useState(false);
+
+      // Calculate total for multiple transactions if provided
+      const totalAmount = selectedTransactions
+        ? selectedTransactions.reduce((sum, tx) => sum + tx.total, 0)
+        : transaction?.total || 0;
+
+      const handlePayment = (method) => {
+        if (method === "cash") {
+          setIsCashModalOpen(true);
+          return;
+        }
+        // Generate tickets for card payment
+        const tickets = (selectedTransactions || [transaction]).map(tx => ({
+          id: tx.id, // 使用原始交易的 ID
+          timestamp: new Date().toLocaleString("zh-CN"),
+          total: tx.total,
+          items: tx.cart.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
+          discount: tx.discount,
+          paymentMethod: method,
+          customerName: tx.customerName,
+          customerPhone: tx.customerPhone,
+          customerTaxNumber: tx.customerTaxNumber || ''
+        }));
+        // Save tickets to localStorage for tickets.html
+        const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        localStorage.setItem("tickets", JSON.stringify([...savedTickets, ...tickets]));
+        onConfirm(method, tickets);
+        onClose();
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-1/3">
+            <h2 className="text-xl font-bold mb-4">选择支付方式</h2>
+            {selectedTransactions && (
+              <p className="mb-4">总金额: €{totalAmount.toFixed(2)}</p>
+            )}
+            <div className="flex flex-col space-y-2 mb-4">
+              <button
+                onClick={() => handlePayment("card")}
+                className="p-3 rounded text-lg bg-gray-200 hover:bg-gray-300"
+              >
+                刷卡
+              </button>
+              <button
+                onClick={() => handlePayment("cash")}
+                className="p-3 rounded text-lg bg-gray-200 hover:bg-gray-300"
+              >
+                现金
+              </button>
+            </div>
+            <button
+              onClick={onClose}
+              className="bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
+            >
+              关闭
+            </button>
+            <CashPaymentModal
+              isOpen={isCashModalOpen}
+              onClose={() => setIsCashModalOpen(false)}
+              onConfirm={(method, tickets) => {
+                onConfirm(method, tickets);
+                setIsCashModalOpen(false);
+                onClose(); // 确保 SettlePaymentModal 也关闭
+              }}
+              transaction={selectedTransactions ? { total: totalAmount } : transaction}
+              selectedTransactions={selectedTransactions}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // Search Panel Component
+    function SearchPanel({ isOpen, onClose, onSearch }) {
+      const [searchCriteria, setSearchCriteria] = React.useState({
+        customerName: '',
+        date: '',
+        amount: ''
+      });
+
+      const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setSearchCriteria((prev) => ({ ...prev, [name]: value }));
+      };
+
+      const handleSearch = () => {
+        onSearch(searchCriteria);
+        onClose();
+      };
+
+      const handleCancel = () => {
+        setSearchCriteria({ customerName: '', date: '', amount: '' });
+        onClose();
+      };
+
+      return (
+        <div
+          className={`fixed top-0 right-0 h-full bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
+            isOpen ? 'translate-x-0' : 'translate-x-full'
+          } w-80 p-6`}
+        >
+          <h3 className="text-lg font-bold mb-4">查询记账记录</h3>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">客户名称</label>
+            <input
+              type="text"
+              name="customerName"
+              value={searchCriteria.customerName}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded"
+              placeholder="输入客户名称"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">日期</label>
+            <input
+              type="date"
+              name="date"
+              value={searchCriteria.date}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">金额</label>
+            <input
+              type="number"
+              name="amount"
+              value={searchCriteria.amount}
+              onChange={handleInputChange}
+              className="w-full p-2 border rounded"
+              placeholder="输入金额"
+              step="0.01"
+            />
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={handleCancel}
+              className="flex-1 bg-gray-500 text-white p-2 rounded hover:bg-gray-600"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleSearch}
+              className="flex-1 bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+            >
+              查询
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Main Debt List Component
+    function DebtList() {
+      const [debts, setDebts] = React.useState([]);
+      const [filteredDebts, setFilteredDebts] = React.useState([]);
+      const [selectedTransaction, setSelectedTransaction] = React.useState(null);
+      const [isDetailsModalOpen, setIsDetailsModalOpen] = React.useState(false);
+      const [isSearchPanelOpen, setIsSearchPanelOpen] = React.useState(false);
+      const [isSettleModalOpen, setIsSettleModalOpen] = React.useState(false);
+      const [isBatchMode, setIsBatchMode] = React.useState(false);
+      const [selectedIds, setSelectedIds] = React.useState([]);
+
+      // Load debts from localStorage on mount
+      React.useEffect(() => {
+        const savedDebts = JSON.parse(localStorage.getItem("debts") || "[]");
+        setDebts(savedDebts);
+        setFilteredDebts(savedDebts);
+      }, []);
+
+      // Handle viewing transaction details
+      const handleViewDetails = (transaction) => {
+        setSelectedTransaction(transaction);
+        setIsDetailsModalOpen(true);
+      };
+
+      // Handle opening settle payment modal
+      const handleOpenSettleModal = (transaction) => {
+        setSelectedTransaction(transaction);
+        setIsSettleModalOpen(true);
+      };
+
+      // Handle batch settle
+      const handleBatchSettle = () => {
+        if (selectedIds.length === 0) {
+          alert("请至少选择一项进行结账！");
+          return;
+        }
+        const selectedTransactions = debts.filter(tx => selectedIds.includes(tx.id));
+        setSelectedTransaction(selectedTransactions);
+        setIsSettleModalOpen(true);
+      };
+
+      // Handle settling a transaction
+      const handleSettleTransaction = (method, tickets) => {
+        const updatedDebts = debts.filter(
+          (transaction) => !tickets.some(ticket => ticket.id === transaction.id)
+        );
+        setDebts(updatedDebts);
+        setFilteredDebts(updatedDebts);
+        localStorage.setItem("debts", JSON.stringify(updatedDebts));
+        setIsSettleModalOpen(false);
+        setSelectedTransaction(null);
+        setSelectedIds([]);
+        setIsBatchMode(false);
+      };
+
+      // Handle search
+      const handleSearch = (criteria) => {
+        const filtered = debts.filter((transaction) => {
+          const matchesName = criteria.customerName
+            ? transaction.customerName.toLowerCase().includes(criteria.customerName.toLowerCase())
+            : true;
+          const matchesDate = criteria.date
+            ? transaction.timestamp.includes(criteria.date)
+            : true;
+          const matchesAmount = criteria.amount
+            ? Math.abs(transaction.total - parseFloat(criteria.amount)) < 0.01
+            : true;
+          return matchesName && matchesDate && matchesAmount;
+        });
+        setFilteredDebts(filtered);
+      };
+
+      // Handle checkbox toggle
+      const handleCheckboxToggle = (id) => {
+        setSelectedIds(prev =>
+          prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+      };
+
+      return (
+        <ErrorBoundary>
+          <div className="flex h-screen">
+            {/* Sidebar */}
+            <div className="w-16 bg-gray-900 text-white flex flex-col items-center py-4 fixed h-full shadow-lg">
+              <h1 className="text-lg font-bold mb-8">POS</h1>
+              <nav className="flex flex-col space-y-4">
+                <a
+                  href="index.html"
+                  className="p-2 rounded-full hover:bg-gray-700"
+                  title="销售"
+                >
+                  🛒
+                </a>
+                <a
+                  href="index.html#inventory"
+                  className="p-2 rounded-full hover:bg-gray-700"
+                  title="库存"
+                >
+                  📦
+                </a>
+                <a
+                  href="cliente.html"
+                  className="p-2 rounded-full hover:bg-gray-700"
+                  title="会员"
+                >
+                  👤
+                </a>
+                <a
+                  href="index.html#payments"
+                  className="p-2 rounded-full hover:bg-gray-700"
+                  title="支付"
+                >
+                  💳
+                </a>
+                <a
+                  href="index.html#reports"
+                  className="p-2 rounded-full hover:bg-gray-700"
+                  title="报告"
+                >
+                  📊
+                </a>
+                <a
+                  href="index.html#users"
+                  className="p-2 rounded-full hover:bg-gray-700"
+                  title="用户"
+                >
+                  🔒
+                </a>
+                <a
+                  href="tickets.html"
+                  className="p-2 rounded-full hover:bg-gray-700"
+                  title="票据"
+                >
+                  🎫
+                </a>
+                <a
+                  href="deuda.html"
+                  className="p-2 rounded-full bg-blue-600"
+                  title="记账"
+                >
+                  📋
+                </a>
+              </nav>
+            </div>
+            {/* Main Content */}
+            <div className="ml-16 w-full bg-white p-4">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">记账列表</h2>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        setIsBatchMode(!isBatchMode);
+                        setSelectedIds([]);
+                      }}
+                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                    >
+                      {isBatchMode ? '取消批量结账' : '批量结账'}
+                    </button>
+                    <button
+                      onClick={() => setIsSearchPanelOpen(true)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    >
+                      查询
+                    </button>
+                  </div>
+                </div>
+                {filteredDebts.length === 0 ? (
+                  <p className="text-gray-500">没有符合条件的记账记录。</p>
+                ) : (
+                  <>
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-200">
+                          {isBatchMode && (
+                            <th className="border p-3 text-left">选择</th>
+                          )}
+                          <th className="border p-3 text-left">客户名称</th>
+                          <th className="border p-3 text-left">电话</th>
+                          <th className="border p-3 text-left">税号</th>
+                          <th className="border p-3 text-left">日期</th>
+                          <th className="border p-3 text-left">金额</th>
+                          <th className="border p-3 text-left">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredDebts.map((transaction) => (
+                          <tr key={transaction.id}>
+                            {isBatchMode && (
+                              <td className="border p-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIds.includes(transaction.id)}
+                                  onChange={() => handleCheckboxToggle(transaction.id)}
+                                />
+                              </td>
+                            )}
+                            <td className="border p-3">{transaction.customerName}</td>
+                            <td className="border p-3">{transaction.customerPhone}</td>
+                            <td className="border p-3">{transaction.customerTaxNumber || '无'}</td>
+                            <td className="border p-3">{transaction.timestamp}</td>
+                            <td className="border p-3">€{transaction.total.toFixed(2)}</td>
+                            <td className="border p-3">
+                              <button
+                                onClick={() => handleViewDetails(transaction)}
+                                className="bg-blue-500 text-white px-3 py-1 rounded mr-2 hover:bg-blue-600"
+                              >
+                                详情
+                              </button>
+                              <button
+                                onClick={() => handleOpenSettleModal(transaction)}
+                                className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                              >
+                                结账
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {isBatchMode && (
+                      <div className="mt-4">
+                        <button
+                          onClick={handleBatchSettle}
+                          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        >
+                          确定
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+                <DebtDetailsModal
+                  isOpen={isDetailsModalOpen}
+                  onClose={() => setIsDetailsModalOpen(false)}
+                  transaction={selectedTransaction}
+                />
+                <SettlePaymentModal
+                  isOpen={isSettleModalOpen}
+                  onClose={() => {
+                    setIsSettleModalOpen(false);
+                    setSelectedTransaction(null);
+                  }}
+                  onConfirm={handleSettleTransaction}
+                  transaction={selectedTransaction}
+                  selectedTransactions={Array.isArray(selectedTransaction) ? selectedTransaction : null}
+                />
+                <SearchPanel
+                  isOpen={isSearchPanelOpen}
+                  onClose={() => setIsSearchPanelOpen(false)}
+                  onSearch={handleSearch}
+                />
+              </div>
+            </div>
+          </div>
+        </ErrorBoundary>
+      );
+    }
+
+    // Render the app using createRoot
+    const rootElement = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<DebtList />);
+  </script>
+</body>
+</html>

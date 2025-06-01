@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>收银系统 - 超市</title>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load React and ReactDOM -->
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <!-- Load Babel for JSX transformation -->
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.25.6/babel.min.js"></script>
+  <!-- CDN Fallback Check -->
+  <script>
+    window.addEventListener('load', () => {
+      if (!window.React || !window.ReactDOM || !window.Babel) {
+        document.getElementById('error-message').classList.remove('hidden');
+        document.getElementById('error-message').innerText = 
+          '错误：无法加载必要资源。请检查网络连接或尝试使用其他浏览器（如 Chrome、Firefox）。';
+      }
+    });
+  </script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <!-- Fallback message if JavaScript fails -->
+  <div id="error-message" className="hidden text-center p-4 text-red-600">
+    错误：无法加载应用程序。请检查网络连接并刷新页面。
+  </div>
+  <!-- Root element for React -->
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Mock product database with stock and safety stock
+    const products = [
+      { id: "1001", name: "全脂牛奶", price: 1.20, barcode: "123456789", stock: 50, safetyStock: 20 },
+      { id: "1002", name: "切片面包", price: 2.00, barcode: "987654321", stock: 15, safetyStock: 10 },
+      { id: "1003", name: "苹果（公斤）", price: 3.50, barcode: "456789123", stock: 30, safetyStock: 25 },
+    ];
+
+    // Error Boundary Component
+    class ErrorBoundary extends React.Component {
+      state = { hasError: false, errorMessage: '' };
+      static getDerivedStateFromError(error) {
+        return { hasError: true, errorMessage: error.message };
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="text-red-600 p-4 text-center">
+              渲染应用程序时出错：{this.state.errorMessage}。请查看浏览器控制台或联系支持。
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    // Manual Product Modal Component
+    function ProductModal({ isOpen, onClose, onSelectProduct, products }) {
+      const [searchTerm, setSearchTerm] = React.useState("");
+
+      const filteredProducts = products.filter((product) =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      const handleSelect = (product) => {
+        onSelectProduct(product);
+        setSearchTerm("");
+        onClose();
+      };
+
+      const handleCustomProduct = () => {
+        if (!searchTerm) {
+          alert("请输入产品名称。");
+          return;
+        }
+        const customProduct = {
+          id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          name: searchTerm,
+          price: 1.00,
+          quantity: 1,
+          stock: 0, // Custom product has no stock
+          safetyStock: 0 // Custom product has no safety stock
+        };
+        onSelectProduct(customProduct);
+        setSearchTerm("");
+        onClose();
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-1/3">
+            <h2 className="text-xl font-bold mb-4">搜索产品</h2>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="输入产品名称"
+              className="border p-2 rounded w-full mb-4"
+              autoFocus
+            />
+            {searchTerm && filteredProducts.length === 0 && (
+              <button
+                onClick={handleCustomProduct}
+                className="bg-blue-600 text-white p-2 rounded w-full mb-4 hover:bg-blue-700"
+              >
+                添加自定义产品："{searchTerm}"（€1.00）
+              </button>
+            )}
+            <div className="max-h-64 overflow-y-auto">
+              {filteredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                  onClick={() => handleSelect({ ...product, quantity: 1 })}
+                >
+                  {product.name} - €{product.price.toFixed(2)} (库存: {product.stock})
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={onClose}
+              className="mt-4 bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Suspended Transactions Modal Component
+    function SuspendedTransactionsModal({ isOpen, onClose, suspendedTransactions, onResumeTransaction }) {
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-1/2">
+            <h2 className="text-xl font-bold mb-4">挂起交易</h2>
+            {suspendedTransactions.length === 0 ? (
+              <p className="text-gray-500">没有挂起的交易。</p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto">
+                {suspendedTransactions.map((transaction, index) => (
+                  <div
+                    key={transaction.id}
+                    className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                    onClick={() => onResumeTransaction(transaction)}
+                  >
+                    交易 {index + 1} - {transaction.timestamp}（€{transaction.total.toFixed(2)}） - 客户: {transaction.customerName || '无'}
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={onClose}
+              className="mt-4 bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Create Customer Modal Component
+    function CreateCustomerModal({ isOpen, onClose, onSave }) {
+      const [formData, setFormData] = React.useState({
+        id: '',
+        name: '',
+        taxNumber: '',
+        phone: ''
+      });
+
+      const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+      };
+
+      const handleSubmit = () => {
+        if (!formData.id || !formData.name || !formData.phone) {
+          alert('客户代码、客户名称和电话为必填项！');
+          return;
+        }
+        onSave(formData);
+        setFormData({ id: '', name: '', taxNumber: '', phone: '' });
+        onClose();
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">创建客户</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户代码</label>
+                <input
+                  type="text"
+                  name="id"
+                  value={formData.id}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户代码"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户名称</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户名称"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户税号</label>
+                <input
+                  type="text"
+                  name="taxNumber"
+                  value={formData.taxNumber}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户税号"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户电话</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户电话"
+                  required
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end space-x-2">
+              <button
+                onClick={onClose}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Select Customer Modal Component
+    function SelectCustomerModal({ isOpen, onClose, onSelectCustomer, customers, cart, discount, onClearCart }) {
+      const [formData, setFormData] = React.useState({
+        name: '',
+        phone: '',
+        taxNumber: ''
+      });
+      const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+
+      const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+
+        // Auto-fill other fields based on input
+        const matchedCustomer = customers.find(
+          (customer) =>
+            (name === 'name' && customer.name.toLowerCase() === value.toLowerCase()) ||
+            (name === 'phone' && customer.phone === value) ||
+            (name === 'taxNumber' && customer.taxNumber === value)
+        );
+
+        if (matchedCustomer) {
+          setFormData({
+            name: matchedCustomer.name,
+            phone: matchedCustomer.phone,
+            taxNumber: matchedCustomer.taxNumber || ''
+          });
+        }
+      };
+
+      const handleCreateCustomer = (newCustomer) => {
+        // Save new customer to localStorage
+        const savedCustomers = JSON.parse(localStorage.getItem('customers') || '[]');
+        localStorage.setItem('customers', JSON.stringify([...savedCustomers, newCustomer]));
+        // Pass to parent for updating state
+        onSelectCustomer(newCustomer);
+        setFormData({ name: newCustomer.name, phone: newCustomer.phone, taxNumber: newCustomer.taxNumber || '' });
+        setIsCreateModalOpen(false);
+      };
+
+      const handleSubmit = () => {
+        if (!formData.name || !formData.phone) {
+          alert('客户名称和电话为必填项！');
+          return;
+        }
+        // Calculate total for the transaction
+        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const discountAmount = subtotal * (discount / 100);
+        const total = (subtotal - discountAmount).toFixed(2);
+        // Create debt transaction
+        const debt = {
+          id: `debt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          cart: [...cart],
+          discount,
+          total: parseFloat(total),
+          timestamp: new Date().toLocaleString("zh-CN"),
+          customerName: formData.name,
+          customerPhone: formData.phone,
+          customerTaxNumber: formData.taxNumber || '',
+          status: 'pending' // For deuda.html
+        };
+        // Save to debts for deuda.html
+        const savedDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+        localStorage.setItem('debts', JSON.stringify([...savedDebts, debt]));
+        // Clear cart and reset discount
+        onClearCart();
+        setFormData({ name: '', phone: '', taxNumber: '' });
+        onClose();
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">选择客户</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户名称</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户名称"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户电话</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户电话"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">客户税号</label>
+                <input
+                  type="text"
+                  name="taxNumber"
+                  value={formData.taxNumber}
+                  onChange={handleChange}
+                  className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入客户税号"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end space-x-2">
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                创建客户
+              </button>
+              <button
+                onClick={onClose}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                完成
+              </button>
+            </div>
+            <CreateCustomerModal
+              isOpen={isCreateModalOpen}
+              onClose={() => setIsCreateModalOpen(false)}
+              onSave={handleCreateCustomer}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // Cash Payment Modal Component
+    function CashPaymentModal({ isOpen, onClose, onConfirm, cart, discount }) {
+      const [receivedAmount, setReceivedAmount] = React.useState("");
+
+      // Calculate total amount due
+      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const discountAmount = total * (discount / 100);
+      const amountDue = (total - discountAmount).toFixed(2);
+      
+      // Calculate change
+      const change = (parseFloat(receivedAmount) - parseFloat(amountDue)).toFixed(2);
+
+      // Handle number button clicks
+      const handleNumberClick = (number) => {
+        setReceivedAmount((prev) => prev + number);
+      };
+
+      // Handle delete button
+      const handleDelete = () => {
+        setReceivedAmount((prev) => prev.slice(0, -1));
+      };
+
+      // Handle confirm payment
+      const handleConfirmPayment = () => {
+        if (!receivedAmount || parseFloat(receivedAmount) < parseFloat(amountDue)) {
+          alert("实收金额不足以支付应付金额！");
+          return;
+        }
+        const ticket = {
+          id: `ticket-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          timestamp: new Date().toLocaleString("zh-CN"),
+          total: parseFloat(amountDue),
+          items: cart.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
+          discount,
+          paymentMethod: "cash",
+          receivedAmount: parseFloat(receivedAmount),
+          change: parseFloat(change)
+        };
+        // Save ticket to localStorage for tickets.html
+        const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        localStorage.setItem("tickets", JSON.stringify([...savedTickets, ticket]));
+        onConfirm("cash", ticket);
+        setReceivedAmount("");
+        onClose();
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-1/2 flex">
+            {/* Left Panel: Amounts */}
+            <div className="w-1/2 pr-4 flex flex-col space-y-4">
+              <div>
+                <label className="block text-lg font-medium text-gray-700">应付金额</label>
+                <p className="text-2xl font-bold">€{amountDue}</p>
+              </div>
+              <div>
+                <label className="block text-lg font-medium text-gray-700">实收金额</label>
+                <p className="text-2xl font-bold">€{receivedAmount || "0.00"}</p>
+              </div>
+              <div>
+                <label className="block text-lg font-medium text-gray-700">找零</label>
+                <p className="text-2xl font-bold">€{receivedAmount ? (change >= 0 ? change : "0.00") : "0.00"}</p>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={onClose}
+                  className="bg-gray-500 text-white px-4 py-2 rounded w-full hover:bg-gray-600"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleConfirmPayment}
+                  className="bg-green-600 text-white px-4 py-2 rounded w-full hover:bg-green-700"
+                >
+                  确认
+                </button>
+              </div>
+            </div>
+            {/* Right Panel: Number Pad */}
+            <div className="w-1/2 grid grid-cols-3 gap-2">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((number) => (
+                <button
+                  key={number}
+                  onClick={() => handleNumberClick(number)}
+                  className="bg-gray-200 p-4 rounded text-lg hover:bg-gray-300"
+                >
+                  {number}
+                </button>
+              ))}
+              <button
+                onClick={handleDelete}
+                className="bg-red-500 text-white p-4 rounded text-lg hover:bg-red-600"
+              >
+                ←
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Payment Modal Component
+    function PaymentModal({ isOpen, onClose, onConfirm, cart, discount, onClearCart }) {
+      const [paymentMethod, setPaymentMethod] = React.useState(null);
+      const [isSelectCustomerModalOpen, setIsSelectCustomerModalOpen] = React.useState(false);
+      const [isCashModalOpen, setIsCashModalOpen] = React.useState(false);
+      const [customers, setCustomers] = React.useState(() => {
+        const savedCustomers = localStorage.getItem('customers');
+        return savedCustomers ? JSON.parse(savedCustomers) : [];
+      });
+
+      const handlePayment = (method) => {
+        if (!cart.length) {
+          alert("购物车为空，无法结算。");
+          return;
+        }
+        if (method === "cash") {
+          setPaymentMethod("cash");
+          setIsCashModalOpen(true);
+          return;
+        }
+        // Generate ticket data for card
+        const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const discountAmount = total * (discount / 100);
+        const finalTotal = (total - discountAmount).toFixed(2);
+        const ticket = {
+          id: `ticket-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          timestamp: new Date().toLocaleString("zh-CN"),
+          total: parseFloat(finalTotal),
+          items: cart.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
+          discount,
+          paymentMethod: method
+        };
+        // Save ticket to localStorage for tickets.html
+        const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        localStorage.setItem("tickets", JSON.stringify([...savedTickets, ticket]));
+        onConfirm(method, ticket);
+        onClose();
+      };
+
+      const handleSelectCustomer = (newCustomer) => {
+        // Update customers state for consistency with cliente.html
+        setCustomers((prev) => [...prev, newCustomer]);
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-1/3">
+            <h2 className="text-xl font-bold mb-4">选择支付方式</h2>
+            <div className="flex flex-col space-y-2 mb-4">
+              <button
+                onClick={() => handlePayment("card")}
+                className={`p-3 rounded text-lg ${paymentMethod === "card" ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
+              >
+                刷卡
+              </button>
+              <button
+                onClick={() => handlePayment("cash")}
+                className={`p-3 rounded text-lg ${paymentMethod === "cash" ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
+              >
+                现金
+              </button>
+              <button
+                onClick={() => {
+                  if (!cart.length) {
+                    alert("购物车为空，无法挂单。");
+                    return;
+                  }
+                  setPaymentMethod("suspend");
+                  setIsSelectCustomerModalOpen(true);
+                }}
+                className={`p-3 rounded text-lg ${paymentMethod === "suspend" ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
+              >
+                记账
+              </button>
+            </div>
+            <button
+              onClick={onClose}
+              className="bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
+            >
+              关闭
+            </button>
+            <SelectCustomerModal
+              isOpen={isSelectCustomerModalOpen}
+              onClose={() => {
+                setIsSelectCustomerModalOpen(false);
+                onClose();
+              }}
+              onSelectCustomer={handleSelectCustomer}
+              customers={customers}
+              cart={cart}
+              discount={discount}
+              onClearCart={onClearCart}
+            />
+            <CashPaymentModal
+              isOpen={isCashModalOpen}
+              onClose={() => {
+                setIsCashModalOpen(false);
+                onClose();
+              }}
+              onConfirm={onConfirm}
+              cart={cart}
+              discount={discount}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // Main App Component
+    function App() {
+      const [cart, setCart] = React.useState([]);
+      const [barcode, setBarcode] = React.useState("");
+      const [discount, setDiscount] = React.useState(0);
+      const [activeModule, setActiveModule] = React.useState("sales");
+      const [isModalOpen, setIsModalOpen] = React.useState(false);
+      const [isSuspendedModalOpen, setIsSuspendedModalOpen] = React.useState(false);
+      const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false);
+      const [suspendedTransactions, setSuspendedTransactions] = React.useState(() => {
+        const saved = localStorage.getItem('suspendedTransactions');
+        return saved ? JSON.parse(saved) : [];
+      });
+      const [resumedTransactionId, setResumedTransactionId] = React.useState(null);
+
+      // Handle barcode input
+      const handleScan = (e) => {
+        e.preventDefault();
+        const product = products.find((p) => p.barcode === barcode || p.id === barcode);
+        if (product) {
+          const existingItem = cart.find((item) => item.id === product.id);
+          if (existingItem) {
+            const newCart = cart.map((item) =>
+              item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+            );
+            setCart(newCart);
+          } else {
+            setCart([...cart, { ...product, quantity: 1 }]);
+          }
+          setBarcode("");
+        } else {
+          alert("未找到产品");
+        }
+      };
+
+      // Handle product selection from modal
+      const handleSelectProduct = (product) => {
+        const existingItem = cart.find((item) => item.id === product.id);
+        if (existingItem) {
+          const newCart = cart.map((item) =>
+            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          );
+          setCart(newCart);
+        } else {
+          setCart([...cart, product]);
+        }
+      };
+
+      // Update quantity
+      const updateQuantity = (index, delta) => {
+        const newCart = [...cart];
+        newCart[index].quantity = Math.max(1, newCart[index].quantity + delta);
+        setCart(newCart);
+      };
+
+      // Remove item from cart
+      const removeItem = (index) => {
+        const newCart = cart.filter((_, i) => i !== index);
+        setCart(newCart);
+      };
+
+      // Calculate total
+      const calculateTotal = () => {
+        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const discountAmount = subtotal * (discount / 100);
+        return (subtotal - discountAmount).toFixed(2);
+      };
+
+      // Handle payment confirmation
+      const handlePaymentConfirm = (paymentMethod, ticket) => {
+        setCart([]);
+        setDiscount(0);
+        if (resumedTransactionId) {
+          const updatedTransactions = suspendedTransactions.filter(
+            (transaction) => transaction.id !== resumedTransactionId
+          );
+          setSuspendedTransactions(updatedTransactions);
+          localStorage.setItem("suspendedTransactions", JSON.stringify(updatedTransactions));
+          setResumedTransactionId(null);
+        }
+      };
+
+      // Handle suspend transaction
+      const handleSuspend = (transaction) => {
+        const updatedTransactions = [...suspendedTransactions, transaction];
+        setSuspendedTransactions(updatedTransactions);
+        localStorage.setItem("suspendedTransactions", JSON.stringify(updatedTransactions));
+        setCart([]);
+        setDiscount(0);
+        setIsPaymentModalOpen(false);
+      };
+
+      // Clear cart and reset discount
+      const clearCart = () => {
+        setCart([]);
+        setDiscount(0);
+        setIsPaymentModalOpen(false);
+      };
+
+      // Suspend transaction (via button in sales module)
+      const suspendTransaction = () => {
+        if (cart.length === 0) {
+          alert("购物车中没有产品可挂起。");
+          return;
+        }
+        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const discountAmount = subtotal * (discount / 100);
+        const total = (subtotal - discountAmount).toFixed(2);
+        const transaction = {
+          id: `transaction-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          cart: [...cart],
+          discount,
+          total: parseFloat(total),
+          timestamp: new Date().toLocaleString("zh-CN"),
+          customerName: '无' // Default for suspended transactions
+        };
+        handleSuspend(transaction);
+      };
+
+      // Apply member price
+      const applyMemberPrice = () => {
+        if (cart.length === 0) {
+          alert("购物车中没有产品可应用会员价格。");
+          return;
+        }
+        if (discount > 0) {
+          alert("已应用折扣，无法同时应用会员价格。");
+          return;
+        }
+        const confirmApply = window.confirm("是否为购物车中的商品应用会员价格（原价的90%）？");
+        if (confirmApply) {
+          const newCart = cart.map(item => ({
+            ...item,
+            price: (item.price * 0.9).toFixed(2)
+          }));
+          setCart(newCart);
+          alert("已成功应用会员价格！");
+        }
+      };
+
+      // Resume transaction
+      const resumeTransaction = (transaction) => {
+        setCart(transaction.cart);
+        setDiscount(transaction.discount);
+        setResumedTransactionId(transaction.id);
+        setIsSuspendedModalOpen(false);
+      };
+
+      // Render module content
+      const renderModule = () => {
+        switch (activeModule) {
+          case "sales":
+            return (
+              <div className="flex h-full p-4">
+                {/* Left Panel: Inputs and Actions */}
+                <div className="w-1/3 pr-4">
+                  <h2 className="text-xl font-bold mb-4">新增销售</h2>
+                  {/* Barcode Input */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-2">扫描产品</h3>
+                    <form onSubmit={handleScan}>
+                      <input
+                        type="text"
+                        value={barcode}
+                        onChange={(e) => setBarcode(e.target.value)}
+                        placeholder="条形码或PLU（按回车）"
+                        className="border p-3 rounded w-full text-lg"
+                        autoFocus
+                      />
+                    </form>
+                  </div>
+                  {/* Manual Product Button */}
+                  <div className="mb-6">
+                    <button
+                      onClick={() => setIsModalOpen(true)}
+                      className="bg-blue-600 text-white p-3 rounded w-full text-lg hover:bg-blue-700"
+                    >
+                      手动输入
+                    </button>
+                  </div>
+                  {/* Discount */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium mb-1">折扣 (%)</label>
+                    <input
+                      type="number"
+                      value={discount}
+                      onChange={(e) => setDiscount(Number(e.target.value))}
+                      className="border p-2 rounded w-full"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                  {/* Action Buttons */}
+                  <div className="mb-6">
+                    <button
+                      onClick={suspendTransaction}
+                      className="bg-yellow-600 text-white p-3 rounded w-full text-lg hover:bg-yellow-700"
+                      disabled={cart.length === 0}
+                    >
+                      挂起
+                    </button>
+                  </div>
+                  {/* Member Price Button */}
+                  <div className="mb-6">
+                    <button
+                      onClick={applyMemberPrice}
+                      className="bg-teal-600 text-white p-3 rounded w-full text-lg hover:bg-teal-700"
+                      disabled={cart.length === 0}
+                    >
+                      会员价格
+                    </button>
+                  </div>
+                  {/* Suspended Transactions Button */}
+                  {suspendedTransactions.length > 0 && (
+                    <div className="mb-6">
+                      <button
+                        onClick={() => setIsSuspendedModalOpen(true)}
+                        className="bg-purple-600 text-white p-3 rounded w-full text-lg hover:bg-purple-700"
+                      >
+                        查看挂起交易
+                      </button>
+                    </div>
+                  )}
+                  {/* Product Modal */}
+                  <ProductModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    onSelectProduct={handleSelectProduct}
+                    products={products}
+                  />
+                  {/* Suspended Transactions Modal */}
+                  <SuspendedTransactionsModal
+                    isOpen={isSuspendedModalOpen}
+                    onClose={() => setIsSuspendedModalOpen(false)}
+                    suspendedTransactions={suspendedTransactions}
+                    onResumeTransaction={resumeTransaction}
+                  />
+                  {/* Payment Modal */}
+                  <PaymentModal
+                    isOpen={isPaymentModalOpen}
+                    onClose={() => setIsPaymentModalOpen(false)}
+                    onConfirm={handlePaymentConfirm}
+                    cart={cart}
+                    discount={discount}
+                    onClearCart={clearCart}
+                  />
+                </div>
+                {/* Right Panel: Cart and Total */}
+                <div className="w-2/3 bg-gray-50 p-4 rounded-lg shadow relative">
+                  <h2 className="text-xl font-bold mb-4">购物车</h2>
+                  {cart.length === 0 ? (
+                    <p className="text-gray-500">购物车中没有产品。</p>
+                  ) : (
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-200">
+                          <th className="border p-3 text-left">产品</th>
+                          <th className="border p-3 text-left">单价</th>
+                          <th className="border p-3 text-left">数量</th>
+                          <th className="border p-3 text-left">库存</th>
+                          <th className="border p-3 text-left">总计</th>
+                          <th className="border p-3 text-left">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cart.map((item, index) => (
+                          <tr key={index}>
+                            <td className="border p-3">{item.name}</td>
+                            <td className="border p-3">€{item.price.toFixed(2)}</td>
+                            <td className="border p-3">{item.quantity}</td>
+                            <td className={`border p-3 ${item.stock <= item.safetyStock ? 'text-red-600' : ''}`}>
+                              {item.stock}
+                            </td>
+                            <td className="border p-3">€{(item.price * item.quantity).toFixed(2)}</td>
+                            <td className="border p-3">
+                              <button
+                                onClick={() => updateQuantity(index, 1)}
+                                className="bg-green-500 text-white px-3 py-1 rounded mr-2 hover:bg-green-600"
+                              >
+                                +
+                              </button>
+                              <button
+                                onClick={() => updateQuantity(index, -1)}
+                                className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600"
+                              >
+                                -
+                              </button>
+                              <button
+                                onClick={() => removeItem(index)}
+                                className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
+                              >
+                                🗑
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                  <div className="absolute bottom-4 left-4">
+                    <p className="text-lg font-semibold">总计: €{calculateTotal()}</p>
+                  </div>
+                  <div className="absolute bottom-4 right-4">
+                    <button
+                      onClick={() => setIsPaymentModalOpen(true)}
+                      className="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-lg hover:bg-green-700"
+                      disabled={cart.length === 0}
+                    >
+                      💳
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          case "inventory":
+            return <div className="p-6">库存模块（待实现：入库、出库、库存、警报）</div>;
+          case "membership":
+            return <div className="p-6">会员与促销模块（待实现：注册、积分、促销）</div>;
+          case "payments":
+            return <div className="p-6">支付与结算模块（待实现：支付、每日报告）</div>;
+          case "reports":
+            return <div className="p-6">报告与分析模块（待实现：销售、库存、财务）</div>;
+          case "users":
+            return <div className="p-6">用户与权限模块（待实现：角色、权限、审计）</div>;
+          default:
+            return null;
+        }
+      };
+
+      return (
+        <ErrorBoundary>
+          <div className="flex h-screen">
+            {/* Sidebar */}
+            <div className="w-16 bg-gray-900 text-white flex flex-col items-center py-4 fixed h-full shadow-lg">
+              <h1 className="text-lg font-bold mb-8">POS</h1>
+              <nav className="flex flex-col space-y-4">
+                <button
+                  onClick={() => setActiveModule("sales")}
+                  className={`p-2 rounded-full ${
+                    activeModule === "sales" ? "bg-blue-600" : "hover:bg-gray-700"
+                  }`}
+                  title="销售"
+                >
+                  🛒
+                </button>
+                <button
+                  onClick={() => setActiveModule("inventory")}
+                  className={`p-2 rounded-full ${
+                    activeModule === "inventory" ? "bg-blue-600" : "hover:bg-gray-700"
+                  }`}
+                  title="库存"
+                >
+                  📦
+                </button>
+                <a
+                  href="cliente.html"
+                  className={`p-2 rounded-full ${
+                    activeModule === "membership" ? "bg-blue-600" : "hover:bg-gray-700"
+                  }`}
+                  title="会员"
+                >
+                  👤
+                </a>
+                <button
+                  onClick={() => setActiveModule("payments")}
+                  className={`p-2 rounded-full ${
+                    activeModule === "payments" ? "bg-blue-600" : "hover:bg-gray-700"
+                  }`}
+                  title="支付"
+                >
+                  💳
+                </button>
+                <button
+                  onClick={() => setActiveModule("reports")}
+                  className={`p-2 rounded-full ${
+                    activeModule === "reports" ? "bg-blue-600" : "hover:bg-gray-700"
+                  }`}
+                  title="报告"
+                >
+                  📊
+                </button>
+                <button
+                  onClick={() => setActiveModule("users")}
+                  className={`p-2 rounded-full ${
+                    activeModule === "users" ? "bg-blue-600" : "hover:bg-gray-700"
+                  }`}
+                  title="用户"
+                >
+                  🔒
+                </button>
+                <a
+                  href="tickets.html"
+                  className="p-2 rounded-full hover:bg-gray-700"
+                  title="票据"
+                >
+                  🎫
+                </a>
+                <a
+                  href="deuda.html"
+                  className="p-2 rounded-full hover:bg-gray-700"
+                  title="记账"
+                >
+                  📋
+                </a>
+              </nav>
+            </div>
+            {/* Main Content */}
+            <div className="ml-16 w-full bg-white p-4">{renderModule()}</div>
+          </div>
+        </ErrorBoundary>
+      );
+    }
+
+    // Render the app using createRoot
+    const rootElement = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+</html>

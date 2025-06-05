@@ -49,7 +49,7 @@
       }
     }
 
-    // Search Panel Component (Replaces SearchModal)
+    // Search Panel Component
     function SearchPanel({ isOpen, onClose, onSearch, tickets }) {
       const [searchCustomer, setSearchCustomer] = React.useState("");
       const [searchType, setSearchType] = React.useState("");
@@ -158,8 +158,26 @@
             <h2 className="text-xl font-bold mb-4">票据详情 - {ticket.id}</h2>
             <p className="mb-2"><strong>时间：</strong>{ticket.timestamp}</p>
             <p className="mb-2"><strong>客户：</strong>{ticket.customerName ? ticket.customerName : "普通客户"}</p>
-            <p className="mb-2"><strong>支付方式：</strong>{ticket.paymentMethod === "card" ? "刷卡" : "现金"}</p>
+            {ticket.type === "发票" && (
+              <>
+                {ticket.phone && <p className="mb-2"><strong>电话：</strong>{ticket.phone}</p>}
+                {ticket.taxId && <p className="mb-2"><strong>税号：</strong>{ticket.taxId}</p>}
+              </>
+            )}
+            {ticket.paymentMethod && (
+              <p className="mb-2"><strong>支付方式：</strong>{ticket.paymentMethod === "card" ? "刷卡" : "现金"}</p>
+            )}
             <p className="mb-4"><strong>总计：</strong>€{ticket.total.toFixed(2)}</p>
+            {ticket.tickets && (
+              <>
+                <h3 className="text-lg font-semibold mb-2">包含的小票</h3>
+                <ul className="list-disc pl-5 mb-4">
+                  {ticket.tickets.map((ticketId, index) => (
+                    <li key={index}>{ticketId}</li>
+                  ))}
+                </ul>
+              </>
+            )}
             <h3 className="text-lg font-semibold mb-2">商品列表</h3>
             <table className="w-full border-collapse">
               <thead>
@@ -181,7 +199,9 @@
                 ))}
               </tbody>
             </table>
-            <p className="mt-4"><strong>折扣：</strong>{ticket.discount}%</p>
+            {ticket.discount !== undefined && (
+              <p className="mt-4"><strong>折扣：</strong>{ticket.discount}%</p>
+            )}
             <button
               onClick={onClose}
               className="mt-4 bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
@@ -193,7 +213,7 @@
       );
     }
 
-    // Create Customer Modal Component (from cliente.html)
+    // Create Customer Modal Component
     function CreateCustomerModal({ isOpen, onClose, onSave }) {
       const [formData, setFormData] = React.useState({
         id: '',
@@ -354,10 +374,8 @@
       };
 
       const handleSaveCustomer = (newCustomer) => {
-        // Update localStorage customers
         const updatedCustomers = [...customers, newCustomer];
         localStorage.setItem("customers", JSON.stringify(updatedCustomers));
-        // Auto-fill InvoiceModal fields with new customer data
         setCustomerName(newCustomer.name || "");
         setPhone(newCustomer.phone || "");
         setTaxId(newCustomer.taxNumber || "");
@@ -465,26 +483,38 @@
       const [currentPage, setCurrentPage] = React.useState(1);
       const ticketsPerPage = 10;
 
-      // Load tickets from localStorage on component mount and listen for storage changes
+      // Load tickets and invoices from localStorage on component mount and listen for storage changes
       React.useEffect(() => {
-        const loadTickets = () => {
+        const loadTicketsAndInvoices = () => {
           const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-          // Initialize type as "小票" if not present
+          const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+
+          // Initialize type as "小票" for tickets if not present
           const updatedTickets = savedTickets.map(ticket => ({
             ...ticket,
             type: ticket.type || "小票"
           }));
-          // Sort tickets by timestamp in descending order
-          const sortedTickets = updatedTickets.sort((a, b) => 
+
+          // Format invoices to match ticket structure for display
+          const formattedInvoices = savedInvoices.map(invoice => ({
+            ...invoice,
+            type: "发票",
+            paymentMethod: undefined, // Invoices don't have paymentMethod
+            discount: 0 // Invoices don't have discount in current structure
+          }));
+
+          // Combine tickets and invoices, sort by timestamp in descending order
+          const combinedTickets = [...updatedTickets, ...formattedInvoices].sort((a, b) => 
             new Date(b.timestamp) - new Date(a.timestamp)
           );
-          setTickets(sortedTickets);
+
+          setTickets(combinedTickets);
         };
 
-        loadTickets();
+        loadTicketsAndInvoices();
 
-        window.addEventListener('storage', loadTickets);
-        return () => window.removeEventListener('storage', loadTickets);
+        window.addEventListener('storage', loadTicketsAndInvoices);
+        return () => window.removeEventListener('storage', loadTicketsAndInvoices);
       }, []);
 
       const handleSearch = (filteredTickets) => {
@@ -500,6 +530,7 @@
       };
 
       const handleInvoice = (ticket) => {
+        if (ticket.type === "发票") return; // Prevent invoicing an invoice
         setCurrentInvoiceTicketId(ticket.id);
         if (ticket.customerName && ticket.customerName !== "普通客户") {
           setIsConfirmInvoiceModalOpen(true);
@@ -510,22 +541,26 @@
 
       const handleInvoiceConfirm = ({ customerName, phone, taxId }) => {
         const updatedTickets = tickets.map(ticket => 
-          ticket.id === currentInvoiceTicketId
+          ticket.id === currentInvoiceTicketId && ticket.type !== "发票"
             ? { ...ticket, type: "发票", customerName, phone, taxId }
             : ticket
         );
+        // Update only the tickets array in localStorage, preserve invoices
+        const updatedLocalTickets = updatedTickets.filter(ticket => !ticket.tickets);
+        localStorage.setItem("tickets", JSON.stringify(updatedLocalTickets));
         setTickets(updatedTickets);
-        localStorage.setItem("tickets", JSON.stringify(updatedTickets));
       };
 
       const handleConfirmInvoice = () => {
         const updatedTickets = tickets.map(ticket => 
-          ticket.id === currentInvoiceTicketId
+          ticket.id === currentInvoiceTicketId && ticket.type !== "发票"
             ? { ...ticket, type: "发票" }
             : ticket
         );
+        // Update only the tickets array in localStorage, preserve invoices
+        const updatedLocalTickets = updatedTickets.filter(ticket => !ticket.tickets);
+        localStorage.setItem("tickets", JSON.stringify(updatedLocalTickets));
         setTickets(updatedTickets);
-        localStorage.setItem("tickets", JSON.stringify(updatedTickets));
         setIsConfirmInvoiceModalOpen(false);
       };
 
@@ -607,12 +642,20 @@
             <div className="ml-16 w-full bg-white p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">票据列表</h2>
-                <button
-                  onClick={() => setIsSearchPanelOpen(true)}
-                  className="bg-blue-600 text-white p-3 rounded text-lg hover:bg-blue-700"
-                >
-                  查询票据
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => window.location.href = 'batch_invoice.html'}
+                    className="bg-green-600 text-white p-3 rounded text-lg hover:bg-green-700"
+                  >
+                    批量开票
+                  </button>
+                  <button
+                    onClick={() => setIsSearchPanelOpen(true)}
+                    className="bg-blue-600 text-white p-3 rounded text-lg hover:bg-blue-700"
+                  >
+                    查询票据
+                  </button>
+                </div>
               </div>
               {tickets.length === 0 ? (
                 <p className="text-gray-500">没有找到票据。请尝试在销售页面完成一笔交易。</p>
@@ -684,7 +727,13 @@
                 isOpen={isSearchPanelOpen}
                 onClose={() => setIsSearchPanelOpen(false)}
                 onSearch={handleSearch}
-                tickets={JSON.parse(localStorage.getItem("tickets") || "[]")} // Pass original tickets for filtering
+                tickets={[...JSON.parse(localStorage.getItem("tickets") || "[]"), 
+                         ...JSON.parse(localStorage.getItem("invoices") || "[]").map(invoice => ({
+                           ...invoice,
+                           type: "发票",
+                           paymentMethod: undefined,
+                           discount: 0
+                         }))]} // Pass combined tickets and invoices for filtering
               />
               <TicketDetailsModal
                 isOpen={!!selectedTicket}

@@ -13,10 +13,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.25.6/babel.min.js"></script>
   <!-- CDN Fallback Check -->
   <script>
-    window.addEventListener('load', () => {
+    window.addEventListener('load', function() {
       if (!window.React || !window.ReactDOM || !window.Babel) {
-        document.getElementById('error-message').classList.remove('hidden');
-        document.getElementById('error-message').innerText = 
+        var errorDiv = document.getElementById('error-message');
+        errorDiv.classList.remove('hidden');
+        errorDiv.innerText = 
           '错误：无法加载必要资源。请检查网络连接或尝试使用其他浏览器（如 Chrome、Firefox）。';
       }
     });
@@ -35,12 +36,15 @@
     const products = [
       { id: "1001", name: "全脂牛奶", price: 1.20, barcode: "123456789", stock: 50, safetyStock: 20 },
       { id: "1002", name: "切片面包", price: 2.00, barcode: "987654321", stock: 15, safetyStock: 10 },
-      { id: "1003", name: "苹果（公斤）", price: 3.50, barcode: "456789123", stock: 30, safetyStock: 25 },
+      { id: "1003", name: "苹果（公斤）", price: 3.50, barcode: "456789123", stock: 30, safetyStock: 25 }
     ];
 
     // Error Boundary Component
     class ErrorBoundary extends React.Component {
-      state = { hasError: false, errorMessage: '' };
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, errorMessage: '' };
+      }
       static getDerivedStateFromError(error) {
         return { hasError: true, errorMessage: error.message };
       }
@@ -57,38 +61,38 @@
     }
 
     // Manual Product Modal Component
-    function ProductModal({ isOpen, onClose, onSelectProduct, products }) {
+    function ProductModal(props) {
       const [searchTerm, setSearchTerm] = React.useState("");
 
-      const filteredProducts = products.filter((product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      const filteredProducts = props.products.filter(function(product) {
+        return product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      });
 
-      const handleSelect = (product) => {
-        onSelectProduct(product);
+      function handleSelect(product) {
+        props.onSelectProduct(product);
         setSearchTerm("");
-        onClose();
-      };
+        props.onClose();
+      }
 
-      const handleCustomProduct = () => {
+      function handleCustomProduct() {
         if (!searchTerm) {
           alert("请输入产品名称。");
           return;
         }
-        const customProduct = {
-          id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        var customProduct = {
+          id: "manual-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
           name: searchTerm,
           price: 1.00,
           quantity: 1,
-          stock: 0, // Custom product has no stock
-          safetyStock: 0 // Custom product has no safety stock
+          stock: 0,
+          safetyStock: 0
         };
-        onSelectProduct(customProduct);
+        props.onSelectProduct(customProduct);
         setSearchTerm("");
-        onClose();
-      };
+        props.onClose();
+      }
 
-      if (!isOpen) return null;
+      if (!props.isOpen) return null;
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -97,7 +101,7 @@
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={function(e) { setSearchTerm(e.target.value); }}
               placeholder="输入产品名称"
               className="border p-2 rounded w-full mb-4"
               autoFocus
@@ -111,18 +115,20 @@
               </button>
             )}
             <div className="max-h-64 overflow-y-auto">
-              {filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="p-2 hover:bg-gray-100 cursor-pointer border-b"
-                  onClick={() => handleSelect({ ...product, quantity: 1 })}
-                >
-                  {product.name} - €{product.price.toFixed(2)} (库存: {product.stock})
-                </div>
-              ))}
+              {filteredProducts.map(function(product) {
+                return (
+                  <div
+                    key={product.id}
+                    className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                    onClick={function() { handleSelect({ ...product, quantity: 1 }); }}
+                  >
+                    {product.name} - €{product.price.toFixed(2)} (库存: {product.stock})
+                  </div>
+                );
+              })}
             </div>
             <button
-              onClick={onClose}
+              onClick={props.onClose}
               className="mt-4 bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
             >
               关闭
@@ -133,30 +139,32 @@
     }
 
     // Suspended Transactions Modal Component
-    function SuspendedTransactionsModal({ isOpen, onClose, suspendedTransactions, onResumeTransaction }) {
-      if (!isOpen) return null;
+    function SuspendedTransactionsModal(props) {
+      if (!props.isOpen) return null;
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-1/2">
             <h2 className="text-xl font-bold mb-4">挂起交易</h2>
-            {suspendedTransactions.length === 0 ? (
+            {props.suspendedTransactions.length === 0 ? (
               <p className="text-gray-500">没有挂起的交易。</p>
             ) : (
               <div className="max-h-64 overflow-y-auto">
-                {suspendedTransactions.map((transaction, index) => (
-                  <div
-                    key={transaction.id}
-                    className="p-2 hover:bg-gray-100 cursor-pointer border-b"
-                    onClick={() => onResumeTransaction(transaction)}
-                  >
-                    交易 {index + 1} - {transaction.timestamp}（€{transaction.total.toFixed(2)}） - 客户: {transaction.customerName || '无'}
-                  </div>
-                ))}
+                {props.suspendedTransactions.map(function(transaction, index) {
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                      onClick={function() { props.onResumeTransaction(transaction); }}
+                    >
+                      交易 {index + 1} - {transaction.timestamp}（€{transaction.total.toFixed(2)}） - 客户: {transaction.customerName || '无'}
+                    </div>
+                  );
+                })}
               </div>
             )}
             <button
-              onClick={onClose}
+              onClick={props.onClose}
               className="mt-4 bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
             >
               关闭
@@ -167,7 +175,7 @@
     }
 
     // Create Customer Modal Component
-    function CreateCustomerModal({ isOpen, onClose, onSave }) {
+    function CreateCustomerModal(props) {
       const [formData, setFormData] = React.useState({
         id: '',
         name: '',
@@ -175,22 +183,25 @@
         phone: ''
       });
 
-      const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-      };
+      function handleChange(e) {
+        var name = e.target.name;
+        var value = e.target.value;
+        setFormData(function(prev) {
+          return { ...prev, [name]: value };
+        });
+      }
 
-      const handleSubmit = () => {
+      function handleSubmit() {
         if (!formData.id || !formData.name || !formData.phone) {
           alert('客户代码、客户名称和电话为必填项！');
           return;
         }
-        onSave(formData);
+        props.onSave(formData);
         setFormData({ id: '', name: '', taxNumber: '', phone: '' });
-        onClose();
-      };
+        props.onClose();
+      }
 
-      if (!isOpen) return null;
+      if (!props.isOpen) return null;
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -247,7 +258,7 @@
             </div>
             <div className="mt-6 flex justify-end space-x-2">
               <button
-                onClick={onClose}
+                onClick={props.onClose}
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
               >
                 取消
@@ -265,7 +276,7 @@
     }
 
     // Select Customer Modal Component
-    function SelectCustomerModal({ isOpen, onClose, onSelectCustomer, customers, cart, discount, onClearCart }) {
+    function SelectCustomerModal(props) {
       const [formData, setFormData] = React.useState({
         name: '',
         phone: '',
@@ -273,17 +284,20 @@
       });
       const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
-      const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+      function handleChange(e) {
+        var name = e.target.name;
+        var value = e.target.value;
+        setFormData(function(prev) {
+          return { ...prev, [name]: value };
+        });
 
-        // Auto-fill other fields based on input
-        const matchedCustomer = customers.find(
-          (customer) =>
+        var matchedCustomer = props.customers.find(function(customer) {
+          return (
             (name === 'name' && customer.name.toLowerCase() === value.toLowerCase()) ||
             (name === 'phone' && customer.phone === value) ||
             (name === 'taxNumber' && customer.taxNumber === value)
-        );
+          );
+        });
 
         if (matchedCustomer) {
           setFormData({
@@ -292,49 +306,49 @@
             taxNumber: matchedCustomer.taxNumber || ''
           });
         }
-      };
+      }
 
-      const handleCreateCustomer = (newCustomer) => {
-        // Save new customer to localStorage
-        const savedCustomers = JSON.parse(localStorage.getItem('customers') || '[]');
-        localStorage.setItem('customers', JSON.stringify([...savedCustomers, newCustomer]));
-        // Pass to parent for updating state
-        onSelectCustomer(newCustomer);
-        setFormData({ name: newCustomer.name, phone: newCustomer.phone, taxNumber: newCustomer.taxNumber || '' });
+      function handleCreateCustomer(newCustomer) {
+        var savedCustomers = JSON.parse(localStorage.getItem('customers') || '[]');
+        localStorage.setItem('customers', JSON.stringify(savedCustomers.concat([newCustomer])));
+        props.onSelectCustomer(newCustomer);
+        setFormData({
+          name: newCustomer.name,
+          phone: newCustomer.phone,
+          taxNumber: newCustomer.taxNumber || ''
+        });
         setIsCreateModalOpen(false);
-      };
+      }
 
-      const handleSubmit = () => {
+      function handleSubmit() {
         if (!formData.name || !formData.phone) {
           alert('客户名称和电话为必填项！');
           return;
         }
-        // Calculate total for the transaction
-        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const discountAmount = subtotal * (discount / 100);
-        const total = (subtotal - discountAmount).toFixed(2);
-        // Create debt transaction
-        const debt = {
-          id: `debt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          cart: [...cart],
-          discount,
+        var subtotal = props.cart.reduce(function(sum, item) {
+          return sum + item.price * item.quantity;
+        }, 0);
+        var discountAmount = subtotal * (props.discount / 100);
+        var total = (subtotal - discountAmount).toFixed(2);
+        var debt = {
+          id: "debt-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
+          cart: props.cart.slice(),
+          discount: props.discount,
           total: parseFloat(total),
           timestamp: new Date().toLocaleString("zh-CN"),
           customerName: formData.name,
           customerPhone: formData.phone,
           customerTaxNumber: formData.taxNumber || '',
-          status: 'pending' // For deuda.html
+          status: 'pending'
         };
-        // Save to debts for deuda.html
-        const savedDebts = JSON.parse(localStorage.getItem('debts') || '[]');
-        localStorage.setItem('debts', JSON.stringify([...savedDebts, debt]));
-        // Clear cart and reset discount
-        onClearCart();
+        var savedDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+        localStorage.setItem('debts', JSON.stringify(savedDebts.concat([debt])));
+        props.onClearCart();
         setFormData({ name: '', phone: '', taxNumber: '' });
-        onClose();
-      };
+        props.onClose();
+      }
 
-      if (!isOpen) return null;
+      if (!props.isOpen) return null;
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -379,13 +393,13 @@
             </div>
             <div className="mt-6 flex justify-end space-x-2">
               <button
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={function() { setIsCreateModalOpen(true); }}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               >
                 创建客户
               </button>
               <button
-                onClick={onClose}
+                onClick={props.onClose}
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
               >
                 取消
@@ -399,7 +413,7 @@
             </div>
             <CreateCustomerModal
               isOpen={isCreateModalOpen}
-              onClose={() => setIsCreateModalOpen(false)}
+              onClose={function() { setIsCreateModalOpen(false); }}
               onSave={handleCreateCustomer}
             />
           </div>
@@ -408,57 +422,54 @@
     }
 
     // Cash Payment Modal Component
-    function CashPaymentModal({ isOpen, onClose, onConfirm, cart, discount }) {
+    function CashPaymentModal(props) {
       const [receivedAmount, setReceivedAmount] = React.useState("");
 
-      // Calculate total amount due
-      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const discountAmount = total * (discount / 100);
-      const amountDue = (total - discountAmount).toFixed(2);
+      var total = props.cart.reduce(function(sum, item) {
+        return sum + item.price * item.quantity;
+      }, 0);
+      var discountAmount = total * (props.discount / 100);
+      var amountDue = (total - discountAmount).toFixed(2);
       
-      // Calculate change
-      const change = (parseFloat(receivedAmount) - parseFloat(amountDue)).toFixed(2);
+      var change = (parseFloat(receivedAmount || 0) - parseFloat(amountDue)).toFixed(2);
 
-      // Handle number button clicks
-      const handleNumberClick = (number) => {
-        setReceivedAmount((prev) => prev + number);
-      };
+      function handleNumberClick(number) {
+        setReceivedAmount(function(prev) { return prev + number; });
+      }
 
-      // Handle delete button
-      const handleDelete = () => {
-        setReceivedAmount((prev) => prev.slice(0, -1));
-      };
+      function handleDelete() {
+        setReceivedAmount(function(prev) { return prev.slice(0, -1); });
+      }
 
-      // Handle confirm payment
-      const handleConfirmPayment = () => {
+      function handleConfirmPayment() {
         if (!receivedAmount || parseFloat(receivedAmount) < parseFloat(amountDue)) {
           alert("实收金额不足以支付应付金额！");
           return;
         }
-        const ticket = {
-          id: `ticket-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        var ticket = {
+          id: "ticket-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
           timestamp: new Date().toLocaleString("zh-CN"),
           total: parseFloat(amountDue),
-          items: cart.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
-          discount,
-          paymentMethod: "cash",
+          items: props.cart.map(function(item) {
+            return { name: item.name, quantity: item.quantity, price: item.price };
+          }),
+          discount: props.discount,
+          paymentMethod: "cashacred",
           receivedAmount: parseFloat(receivedAmount),
           change: parseFloat(change)
         };
-        // Save ticket to localStorage for tickets.html
-        const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-        localStorage.setItem("tickets", JSON.stringify([...savedTickets, ticket]));
-        onConfirm("cash", ticket);
+        var savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        localStorage.setItem("tickets", JSON.stringify(savedTickets.concat([ticket])));
+        props.onConfirm("cash", ticket);
         setReceivedAmount("");
-        onClose();
-      };
+        props.onClose();
+      }
 
-      if (!isOpen) return null;
+      if (!props.isOpen) return null;
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-1/2 flex">
-            {/* Left Panel: Amounts */}
             <div className="w-1/2 pr-4 flex flex-col space-y-4">
               <div>
                 <label className="block text-lg font-medium text-gray-700">应付金额</label>
@@ -474,7 +485,7 @@
               </div>
               <div className="flex space-x-2">
                 <button
-                  onClick={onClose}
+                  onClick={props.onClose}
                   className="bg-gray-500 text-white px-4 py-2 rounded w-full hover:bg-gray-600"
                 >
                   取消
@@ -487,17 +498,18 @@
                 </button>
               </div>
             </div>
-            {/* Right Panel: Number Pad */}
             <div className="w-1/2 grid grid-cols-3 gap-2">
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map((number) => (
-                <button
-                  key={number}
-                  onClick={() => handleNumberClick(number)}
-                  className="bg-gray-200 p-4 rounded text-lg hover:bg-gray-300"
-                >
-                  {number}
-                </button>
-              ))}
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].map(function(number) {
+                return (
+                  <button
+                    key={number}
+                    onClick={function() { handleNumberClick(number); }}
+                    className="bg-gray-200 p-4 rounded text-lg hover:bg-gray-300"
+                  >
+                    {number}
+                  </button>
+                );
+              })}
               <button
                 onClick={handleDelete}
                 className="bg-red-500 text-white p-4 rounded text-lg hover:bg-red-600"
@@ -511,17 +523,17 @@
     }
 
     // Payment Modal Component
-    function PaymentModal({ isOpen, onClose, onConfirm, cart, discount, onClearCart }) {
+    function PaymentModal(props) {
       const [paymentMethod, setPaymentMethod] = React.useState(null);
       const [isSelectCustomerModalOpen, setIsSelectCustomerModalOpen] = React.useState(false);
       const [isCashModalOpen, setIsCashModalOpen] = React.useState(false);
-      const [customers, setCustomers] = React.useState(() => {
-        const savedCustomers = localStorage.getItem('customers');
-        return savedCustomers ? JSON.parse(savedCustomers) : [];
+      const [customers, setCustomers] = React.useState(function() {
+        var saved = localStorage.getItem('customers');
+        return saved ? JSON.parse(saved) : [];
       });
 
-      const handlePayment = (method) => {
-        if (!cart.length) {
+      function handlePayment(method) {
+        if (!props.cart.length) {
           alert("购物车为空，无法结算。");
           return;
         }
@@ -530,31 +542,34 @@
           setIsCashModalOpen(true);
           return;
         }
-        // Generate ticket data for card
-        const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const discountAmount = total * (discount / 100);
-        const finalTotal = (total - discountAmount).toFixed(2);
-        const ticket = {
-          id: `ticket-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        var total = props.cart.reduce(function(sum, item) {
+          return sum + item.price * item.quantity;
+        }, 0);
+        var discountAmount = total * (props.discount / 100);
+        var finalTotal = (total - discountAmount).toFixed(2);
+        var ticket = {
+          id: "ticket-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
           timestamp: new Date().toLocaleString("zh-CN"),
           total: parseFloat(finalTotal),
-          items: cart.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })),
-          discount,
+          items: props.cart.map(function(item) {
+            return { name: item.name, quantity: item.quantity, price: item.price };
+          }),
+          discount: props.discount,
           paymentMethod: method
         };
-        // Save ticket to localStorage for tickets.html
-        const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-        localStorage.setItem("tickets", JSON.stringify([...savedTickets, ticket]));
-        onConfirm(method, ticket);
-        onClose();
-      };
+        var savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+        localStorage.setItem("tickets", JSON.stringify(savedTickets.concat([ticket])));
+        props.onConfirm(method, ticket);
+        props.onClose();
+      }
 
-      const handleSelectCustomer = (newCustomer) => {
-        // Update customers state for consistency with cliente.html
-        setCustomers((prev) => [...prev, newCustomer]);
-      };
+      function handleSelectCustomer(newCustomer) {
+        setCustomers(function(prev) {
+          return prev.concat([newCustomer]);
+        });
+      }
 
-      if (!isOpen) return null;
+      if (!props.isOpen) return null;
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -562,58 +577,58 @@
             <h2 className="text-xl font-bold mb-4">选择支付方式</h2>
             <div className="flex flex-col space-y-2 mb-4">
               <button
-                onClick={() => handlePayment("card")}
-                className={`p-3 rounded text-lg ${paymentMethod === "card" ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
+                onClick={function() { handlePayment("card"); }}
+                className={paymentMethod === "card" ? "p-3 rounded text-lg bg-blue-600 text-white" : "p-3 rounded text-lg bg-gray-200 hover:bg-gray-300"}
               >
                 刷卡
               </button>
               <button
-                onClick={() => handlePayment("cash")}
-                className={`p-3 rounded text-lg ${paymentMethod === "cash" ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
+                onClick={function() { handlePayment("cash"); }}
+                className={paymentMethod === "cash" ? "p-3 rounded text-lg bg-blue-600 text-white" : "p-3 rounded text-lg bg-gray-200 hover:bg-gray-300"}
               >
                 现金
               </button>
               <button
-                onClick={() => {
-                  if (!cart.length) {
+                onClick={function() {
+                  if (!props.cart.length) {
                     alert("购物车为空，无法挂单。");
                     return;
                   }
                   setPaymentMethod("suspend");
                   setIsSelectCustomerModalOpen(true);
                 }}
-                className={`p-3 rounded text-lg ${paymentMethod === "suspend" ? "bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
+                className={paymentMethod === "suspend" ? "p-3 rounded text-lg bg-blue-600 text-white" : "p-3 rounded text-lg bg-gray-200 hover:bg-gray-300"}
               >
                 记账
               </button>
             </div>
             <button
-              onClick={onClose}
+              onClick={props.onClose}
               className="bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
             >
               关闭
             </button>
             <SelectCustomerModal
               isOpen={isSelectCustomerModalOpen}
-              onClose={() => {
+              onClose={function() {
                 setIsSelectCustomerModalOpen(false);
-                onClose();
+                props.onClose();
               }}
               onSelectCustomer={handleSelectCustomer}
               customers={customers}
-              cart={cart}
-              discount={discount}
-              onClearCart={onClearCart}
+              cart={props.cart}
+              discount={props.discount}
+              onClearCart={props.onClearCart}
             />
             <CashPaymentModal
               isOpen={isCashModalOpen}
-              onClose={() => {
+              onClose={function() {
                 setIsCashModalOpen(false);
-                onClose();
+                props.onClose();
               }}
-              onConfirm={onConfirm}
-              cart={cart}
-              discount={discount}
+              onConfirm={props.onConfirm}
+              cart={props.cart}
+              discount={props.discount}
             />
           </div>
         </div>
@@ -629,118 +644,120 @@
       const [isModalOpen, setIsModalOpen] = React.useState(false);
       const [isSuspendedModalOpen, setIsSuspendedModalOpen] = React.useState(false);
       const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false);
-      const [suspendedTransactions, setSuspendedTransactions] = React.useState(() => {
-        const saved = localStorage.getItem('suspendedTransactions');
+      const [suspendedTransactions, setSuspendedTransactions] = React.useState(function() {
+        var saved = localStorage.getItem('suspendedTransactions');
         return saved ? JSON.parse(saved) : [];
       });
       const [resumedTransactionId, setResumedTransactionId] = React.useState(null);
 
-      // Handle barcode input
-      const handleScan = (e) => {
+      function handleScan(e) {
         e.preventDefault();
-        const product = products.find((p) => p.barcode === barcode || p.id === barcode);
+        var product = products.find(function(p) {
+          return p.barcode === barcode || p.id === barcode;
+        });
         if (product) {
-          const existingItem = cart.find((item) => item.id === product.id);
+          var existingItem = cart.find(function(item) {
+            return item.id === product.id;
+          });
           if (existingItem) {
-            const newCart = cart.map((item) =>
-              item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-            );
+            var newCart = cart.map(function(item) {
+              return item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item;
+            });
             setCart(newCart);
           } else {
-            setCart([...cart, { ...product, quantity: 1 }]);
+            setCart(cart.concat([{ ...product, quantity: 1 }]));
           }
           setBarcode("");
         } else {
           alert("未找到产品");
         }
-      };
+      }
 
-      // Handle product selection from modal
-      const handleSelectProduct = (product) => {
-        const existingItem = cart.find((item) => item.id === product.id);
+      function handleSelectProduct(product) {
+        var existingItem = cart.find(function(item) {
+          return item.id === product.id;
+        });
         if (existingItem) {
-          const newCart = cart.map((item) =>
-            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-          );
+          var newCart = cart.map(function(item) {
+            return item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item;
+          });
           setCart(newCart);
         } else {
-          setCart([...cart, product]);
+          setCart(cart.concat([product]));
         }
-      };
+      }
 
-      // Update quantity
-      const updateQuantity = (index, delta) => {
-        const newCart = [...cart];
+      function updateQuantity(index, delta) {
+        var newCart = cart.slice();
         newCart[index].quantity = Math.max(1, newCart[index].quantity + delta);
         setCart(newCart);
-      };
+      }
 
-      // Remove item from cart
-      const removeItem = (index) => {
-        const newCart = cart.filter((_, i) => i !== index);
+      function removeItem(index) {
+        var newCart = cart.filter(function(_, i) {
+          return i !== index;
+        });
         setCart(newCart);
-      };
+      }
 
-      // Calculate total
-      const calculateTotal = () => {
-        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const discountAmount = subtotal * (discount / 100);
+      function calculateTotal() {
+        var subtotal = cart.reduce(function(sum, item) {
+          return sum + item.price * item.quantity;
+        }, 0);
+        var discountAmount = subtotal * (discount / 100);
         return (subtotal - discountAmount).toFixed(2);
-      };
+      }
 
-      // Handle payment confirmation
-      const handlePaymentConfirm = (paymentMethod, ticket) => {
+      function handlePaymentConfirm(paymentMethod, ticket) {
         setCart([]);
         setDiscount(0);
         if (resumedTransactionId) {
-          const updatedTransactions = suspendedTransactions.filter(
-            (transaction) => transaction.id !== resumedTransactionId
-          );
+          var updatedTransactions = suspendedTransactions.filter(function(transaction) {
+            return transaction.id !== resumedTransactionId;
+          });
           setSuspendedTransactions(updatedTransactions);
           localStorage.setItem("suspendedTransactions", JSON.stringify(updatedTransactions));
           setResumedTransactionId(null);
         }
-      };
+      }
 
-      // Handle suspend transaction
-      const handleSuspend = (transaction) => {
-        const updatedTransactions = [...suspendedTransactions, transaction];
+      function handleSuspend(transaction) {
+        var updatedTransactions = suspendedTransactions.concat([transaction]);
         setSuspendedTransactions(updatedTransactions);
         localStorage.setItem("suspendedTransactions", JSON.stringify(updatedTransactions));
         setCart([]);
         setDiscount(0);
         setIsPaymentModalOpen(false);
-      };
+      }
 
-      // Clear cart and reset discount
-      const clearCart = () => {
+      function clearCart() {
         setCart([]);
         setDiscount(0);
         setIsPaymentModalOpen(false);
-      };
+      }
 
-      // Suspend transaction (via button in sales module)
-      const suspendTransaction = () => {
+      function suspendTransaction() {
         if (cart.length === 0) {
           alert("购物车中没有产品可挂起。");
           return;
         }
-        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        const discountAmount = subtotal * (discount / 100);
-        const total = (subtotal - discountAmount).toFixed(2);
-        const transaction = {
-          id: `transaction-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          cart: [...cart],
-          discount,
+        var subtotal = cart.reduce(function(sum, item) {
+          return sum + item.price * item.quantity;
+        }, 0);
+        var discountAmount = subtotal * (discount / 100);
+        var total = (subtotal - discountAmount).toFixed(2);
+        var transaction = {
+          id: "transaction-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
+          cart: cart.slice(),
+          discount: discount,
           total: parseFloat(total),
           timestamp: new Date().toLocaleString("zh-CN"),
-          customerName: '无' // Default for suspended transactions
+          customerName: '无'
         };
         handleSuspend(transaction);
-      };
+      }
 
-      // Apply member price
-      const applyMemberPrice = () => {
+      function applyMemberPrice() {
         if (cart.length === 0) {
           alert("购物车中没有产品可应用会员价格。");
           return;
@@ -749,70 +766,70 @@
           alert("已应用折扣，无法同时应用会员价格。");
           return;
         }
-        const confirmApply = window.confirm("是否为购物车中的商品应用会员价格（原价的90%）？");
+        var confirmApply = window.confirm("是否为购物车中的商品应用会员价格（原价的90%）？");
         if (confirmApply) {
-          const newCart = cart.map(item => ({
-            ...item,
-            price: (item.price * 0.9).toFixed(2)
-          }));
+          var newCart = cart.map(function(item) {
+            return {
+              ...item,
+              price: (item.price * 0.9).toFixed(2)
+            };
+          });
           setCart(newCart);
           alert("已成功应用会员价格！");
         }
-      };
+      }
 
-      // Resume transaction
-      const resumeTransaction = (transaction) => {
+      function resumeTransaction(transaction) {
         setCart(transaction.cart);
         setDiscount(transaction.discount);
         setResumedTransactionId(transaction.id);
+        var updatedTransactions = suspendedTransactions.filter(function(t) {
+          return t.id !== transaction.id;
+        });
+        setSuspendedTransactions(updatedTransactions);
+        localStorage.setItem("suspendedTransactions", JSON.stringify(updatedTransactions));
         setIsSuspendedModalOpen(false);
-      };
+      }
 
-      // Render module content
-      const renderModule = () => {
+      function renderModule() {
         switch (activeModule) {
           case "sales":
             return (
               <div className="flex h-full p-4">
-                {/* Left Panel: Inputs and Actions */}
                 <div className="w-1/3 pr-4">
                   <h2 className="text-xl font-bold mb-4">新增销售</h2>
-                  {/* Barcode Input */}
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold mb-2">扫描产品</h3>
                     <form onSubmit={handleScan}>
                       <input
                         type="text"
                         value={barcode}
-                        onChange={(e) => setBarcode(e.target.value)}
+                        onChange={function(e) { setBarcode(e.target.value); }}
                         placeholder="条形码或PLU（按回车）"
                         className="border p-3 rounded w-full text-lg"
                         autoFocus
                       />
                     </form>
                   </div>
-                  {/* Manual Product Button */}
                   <div className="mb-6">
                     <button
-                      onClick={() => setIsModalOpen(true)}
+                      onClick={function() { setIsModalOpen(true); }}
                       className="bg-blue-600 text-white p-3 rounded w-full text-lg hover:bg-blue-700"
                     >
                       手动输入
                     </button>
                   </div>
-                  {/* Discount */}
                   <div className="mb-6">
                     <label className="block text-sm font-medium mb-1">折扣 (%)</label>
                     <input
                       type="number"
                       value={discount}
-                      onChange={(e) => setDiscount(Number(e.target.value))}
+                      onChange={function(e) { setDiscount(Number(e.target.value)); }}
                       className="border p-2 rounded w-full"
                       min="0"
                       max="100"
                     />
                   </div>
-                  {/* Action Buttons */}
                   <div className="mb-6">
                     <button
                       onClick={suspendTransaction}
@@ -822,7 +839,6 @@
                       挂起
                     </button>
                   </div>
-                  {/* Member Price Button */}
                   <div className="mb-6">
                     <button
                       onClick={applyMemberPrice}
@@ -832,42 +848,37 @@
                       会员价格
                     </button>
                   </div>
-                  {/* Suspended Transactions Button */}
                   {suspendedTransactions.length > 0 && (
                     <div className="mb-6">
                       <button
-                        onClick={() => setIsSuspendedModalOpen(true)}
+                        onClick={function() { setIsSuspendedModalOpen(true); }}
                         className="bg-purple-600 text-white p-3 rounded w-full text-lg hover:bg-purple-700"
                       >
                         查看挂起交易
                       </button>
                     </div>
                   )}
-                  {/* Product Modal */}
                   <ProductModal
                     isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
+                    onClose={function() { setIsModalOpen(false); }}
                     onSelectProduct={handleSelectProduct}
                     products={products}
                   />
-                  {/* Suspended Transactions Modal */}
                   <SuspendedTransactionsModal
                     isOpen={isSuspendedModalOpen}
-                    onClose={() => setIsSuspendedModalOpen(false)}
+                    onClose={function() { setIsSuspendedModalOpen(false); }}
                     suspendedTransactions={suspendedTransactions}
                     onResumeTransaction={resumeTransaction}
                   />
-                  {/* Payment Modal */}
                   <PaymentModal
                     isOpen={isPaymentModalOpen}
-                    onClose={() => setIsPaymentModalOpen(false)}
+                    onClose={function() { setIsPaymentModalOpen(false); }}
                     onConfirm={handlePaymentConfirm}
                     cart={cart}
                     discount={discount}
                     onClearCart={clearCart}
                   />
                 </div>
-                {/* Right Panel: Cart and Total */}
                 <div className="w-2/3 bg-gray-50 p-4 rounded-lg shadow relative">
                   <h2 className="text-xl font-bold mb-4">购物车</h2>
                   {cart.length === 0 ? (
@@ -885,37 +896,39 @@
                         </tr>
                       </thead>
                       <tbody>
-                        {cart.map((item, index) => (
-                          <tr key={index}>
-                            <td className="border p-3">{item.name}</td>
-                            <td className="border p-3">€{item.price.toFixed(2)}</td>
-                            <td className="border p-3">{item.quantity}</td>
-                            <td className={`border p-3 ${item.stock <= item.safetyStock ? 'text-red-600' : ''}`}>
-                              {item.stock}
-                            </td>
-                            <td className="border p-3">€{(item.price * item.quantity).toFixed(2)}</td>
-                            <td className="border p-3">
-                              <button
-                                onClick={() => updateQuantity(index, 1)}
-                                className="bg-green-500 text-white px-3 py-1 rounded mr-2 hover:bg-green-600"
-                              >
-                                +
-                              </button>
-                              <button
-                                onClick={() => updateQuantity(index, -1)}
-                                className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600"
-                              >
-                                -
-                              </button>
-                              <button
-                                onClick={() => removeItem(index)}
-                                className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
-                              >
-                                🗑
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {cart.map(function(item, index) {
+                          return (
+                            <tr key={index}>
+                              <td className="border p-3">{item.name}</td>
+                              <td className="border p-3">€{item.price.toFixed(2)}</td>
+                              <td className="border p-3">{item.quantity}</td>
+                              <td className={item.stock <= item.safetyStock ? "border p-3 text-red-600" : "border p-3"}>
+                                {item.stock}
+                              </td>
+                              <td className="border p-3">€{(item.price * item.quantity).toFixed(2)}</td>
+                              <td className="border p-3">
+                                <button
+                                  onClick={function() { updateQuantity(index, 1); }}
+                                  className="bg-green-500 text-white px-3 py-1 rounded mr-2 hover:bg-green-600"
+                                >
+                                  +
+                                </button>
+                                <button
+                                  onClick={function() { updateQuantity(index, -1); }}
+                                  className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600"
+                                >
+                                  -
+                                </button>
+                                <button
+                                  onClick={function() { removeItem(index); }}
+                                  className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
+                                >
+                                  🗑
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}
@@ -924,7 +937,7 @@
                   </div>
                   <div className="absolute bottom-4 right-4">
                     <button
-                      onClick={() => setIsPaymentModalOpen(true)}
+                      onClick={function() { setIsPaymentModalOpen(true); }}
                       className="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-lg hover:bg-green-700"
                       disabled={cart.length === 0}
                     >
@@ -947,65 +960,52 @@
           default:
             return null;
         }
-      };
+      }
 
       return (
         <ErrorBoundary>
           <div className="flex h-screen">
-            {/* Sidebar */}
             <div className="w-16 bg-gray-900 text-white flex flex-col items-center py-4 fixed h-full shadow-lg">
               <h1 className="text-lg font-bold mb-8">POS</h1>
               <nav className="flex flex-col space-y-4">
                 <button
-                  onClick={() => setActiveModule("sales")}
-                  className={`p-2 rounded-full ${
-                    activeModule === "sales" ? "bg-blue-600" : "hover:bg-gray-700"
-                  }`}
+                  onClick={function() { setActiveModule("sales"); }}
+                  className={activeModule === "sales" ? "p-2 rounded-full bg-blue-600" : "p-2 rounded-full hover:bg-gray-700"}
                   title="销售"
                 >
                   🛒
                 </button>
                 <button
-                  onClick={() => setActiveModule("inventory")}
-                  className={`p-2 rounded-full ${
-                    activeModule === "inventory" ? "bg-blue-600" : "hover:bg-gray-700"
-                  }`}
+                  onClick={function() { setActiveModule("inventory"); }}
+                  className={activeModule === "inventory" ? "p-2 rounded-full bg-blue-600" : "p-2 rounded-full hover:bg-gray-700"}
                   title="库存"
                 >
                   📦
                 </button>
                 <a
                   href="cliente.html"
-                  className={`p-2 rounded-full ${
-                    activeModule === "membership" ? "bg-blue-600" : "hover:bg-gray-700"
-                  }`}
+                  className={activeModule === "membership" ? "p-2 rounded-full bg-blue-600" : "p-2 rounded-full hover:bg-gray-700"}
                   title="会员"
                 >
                   👤
                 </a>
                 <button
-                  onClick={() => setActiveModule("payments")}
-                  className={`p-2 rounded-full ${
-                    activeModule === "payments" ? "bg-blue-600" : "hover:bg-gray-700"
-                  }`}
+                  onClick={function() { setActiveModule("payments"); }}
+                  className={activeModule === "payments" ? "p-2 rounded-full bg-blue-600" : "p-2 rounded-full hover:bg-gray-700"}
                   title="支付"
                 >
                   💳
                 </button>
                 <button
-                  onClick={() => setActiveModule("reports")}
-                  className={`p-2 rounded-full ${
-                    activeModule === "reports" ? "bg-blue-600" : "hover:bg-gray-700"
-                  }`}
+                  onClick={function() { setActiveModule("reports"); }}
+                  className={activeModule === "reports" ? "p-2 rounded-full bg-blue-600" : "p-2 rounded-full hover:bg-gray-700"}
                   title="报告"
                 >
                   📊
                 </button>
                 <button
-                  onClick={() => setActiveModule("users")}
-                  className={`p-2 rounded-full ${
-                    activeModule === "users" ? "bg-blue-600" : "hover:bg-gray-700"
-                  }`}
+                  onClick={function() { setActiveModule("users"); }}
+                  className={activeModule === "users" ? "p-2 rounded-full bg-blue-600" : "p-2 rounded-full hover:bg-gray-700"}
                   title="用户"
                 >
                   🔒
@@ -1026,7 +1026,6 @@
                 </a>
               </nav>
             </div>
-            {/* Main Content */}
             <div className="ml-16 w-full bg-white p-4">{renderModule()}</div>
           </div>
         </ErrorBoundary>
@@ -1034,8 +1033,8 @@
     }
 
     // Render the app using createRoot
-    const rootElement = document.getElementById("root");
-    const root = ReactDOM.createRoot(rootElement);
+    var rootElement = document.getElementById("root");
+    var root = ReactDOM.createRoot(rootElement);
     root.render(<App />);
   </script>
 </body>

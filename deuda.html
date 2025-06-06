@@ -239,7 +239,7 @@
           discount: tx.discount,
           paymentMethod: method,
           customerName: tx.customerName,
-          customerPhone: tx.customerPhone,
+          customerPhone: tx.channelPhone,
           customerTaxNumber: tx.customerTaxNumber || ''
         }));
         // Save tickets to localStorage for tickets.html
@@ -285,6 +285,7 @@
                 onConfirm(method, tickets);
                 setIsCashModalOpen(false);
                 onClose(); // 确保 SettlePaymentModal 也关闭
+          
               }}
               transaction={selectedTransactions ? { total: totalAmount } : transaction}
               selectedTransactions={selectedTransactions}
@@ -386,11 +387,21 @@
       const [isBatchMode, setIsBatchMode] = React.useState(false);
       const [selectedIds, setSelectedIds] = React.useState([]);
 
-      // Load debts from localStorage on mount
+      // Function to sort debts by timestamp in descending order
+      const sortDebtsByDate = (debts) => {
+        return [...debts].sort((a, b) => {
+          const dateA = new Date(a.timestamp);
+          const dateB = new Date(b.timestamp);
+          return dateB - dateA; // Descending order
+        });
+      };
+
+      // Load debts from localStorage on mount and sort them
       React.useEffect(() => {
         const savedDebts = JSON.parse(localStorage.getItem("debts") || "[]");
-        setDebts(savedDebts);
-        setFilteredDebts(savedDebts);
+        const sortedDebts = sortDebtsByDate(savedDebts);
+        setDebts(sortedDebts);
+        setFilteredDebts(sortedDebts);
       }, []);
 
       // Handle viewing transaction details
@@ -421,9 +432,10 @@
         const updatedDebts = debts.filter(
           (transaction) => !tickets.some(ticket => ticket.id === transaction.id)
         );
-        setDebts(updatedDebts);
-        setFilteredDebts(updatedDebts);
-        localStorage.setItem("debts", JSON.stringify(updatedDebts));
+        const sortedDebts = sortDebtsByDate(updatedDebts);
+        setDebts(sortedDebts);
+        setFilteredDebts(sortedDebts);
+        localStorage.setItem("debts", JSON.stringify(sortedDebts));
         setIsSettleModalOpen(false);
         setSelectedTransaction(null);
         setSelectedIds([]);
@@ -444,7 +456,8 @@
             : true;
           return matchesName && matchesDate && matchesAmount;
         });
-        setFilteredDebts(filtered);
+        const sortedFiltered = sortDebtsByDate(filtered);
+        setFilteredDebts(sortedFiltered);
       };
 
       // Handle checkbox toggle

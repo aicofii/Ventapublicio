@@ -23,7 +23,7 @@
     });
   </script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body className="bg-gray-100 font-sans">
   <!-- Fallback message if JavaScript fails -->
   <div id="error-message" className="hidden text-center p-4 text-red-600">
     错误：无法加载应用程序。请检查网络连接并刷新页面。
@@ -58,6 +58,44 @@
         }
         return this.props.children;
       }
+    }
+
+    // Member Price Modal Component
+    function MemberPriceModal(props) {
+      if (!props.isOpen) return null;
+
+      function handleSelectPrice(discount) {
+        props.onSelectPrice(discount);
+        props.onClose();
+      }
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-1/3">
+            <h2 className="text-xl font-bold mb-4">选择会员价格</h2>
+            <div className="flex flex-col space-y-2 mb-4">
+              <button
+                onClick={() => handleSelectPrice(10)}
+                className="p-3 rounded text-lg bg-gray-200 hover:bg-gray-300"
+              >
+                会员价格1（10%折扣）
+              </button>
+              <button
+                onClick={() => handleSelectPrice(15)}
+                className="p-3 rounded text-lg bg-gray-200 hover:bg-gray-300"
+              >
+                会员价格2（15%折扣）
+              </button>
+            </div>
+            <button
+              onClick={props.onClose}
+              className="bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      );
     }
 
     // Manual Product Modal Component
@@ -454,7 +492,7 @@
             return { name: item.name, quantity: item.quantity, price: item.price };
           }),
           discount: props.discount,
-          paymentMethod: "cashacred",
+          paymentMethod: "cash",
           receivedAmount: parseFloat(receivedAmount),
           change: parseFloat(change)
         };
@@ -644,6 +682,7 @@
       const [isModalOpen, setIsModalOpen] = React.useState(false);
       const [isSuspendedModalOpen, setIsSuspendedModalOpen] = React.useState(false);
       const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false);
+      const [isMemberPriceModalOpen, setIsMemberPriceModalOpen] = React.useState(false);
       const [suspendedTransactions, setSuspendedTransactions] = React.useState(function() {
         var saved = localStorage.getItem('suspendedTransactions');
         return saved ? JSON.parse(saved) : [];
@@ -757,7 +796,7 @@
         handleSuspend(transaction);
       }
 
-      function applyMemberPrice() {
+      function applyMemberPrice(selectedDiscount) {
         if (cart.length === 0) {
           alert("购物车中没有产品可应用会员价格。");
           return;
@@ -766,17 +805,11 @@
           alert("已应用折扣，无法同时应用会员价格。");
           return;
         }
-        var confirmApply = window.confirm("是否为购物车中的商品应用会员价格（原价的90%）？");
-        if (confirmApply) {
-          var newCart = cart.map(function(item) {
-            return {
-              ...item,
-              price: (item.price * 0.9).toFixed(2)
-            };
-          });
-          setCart(newCart);
-          alert("已成功应用会员价格！");
-        }
+        setDiscount(selectedDiscount);
+      }
+
+      function resetDiscount() {
+        setDiscount(0);
       }
 
       function resumeTransaction(transaction) {
@@ -841,7 +874,7 @@
                   </div>
                   <div className="mb-6">
                     <button
-                      onClick={applyMemberPrice}
+                      onClick={function() { setIsMemberPriceModalOpen(true); }}
                       className="bg-teal-600 text-white p-3 rounded w-full text-lg hover:bg-teal-700"
                       disabled={cart.length === 0}
                     >
@@ -877,6 +910,11 @@
                     cart={cart}
                     discount={discount}
                     onClearCart={clearCart}
+                  />
+                  <MemberPriceModal
+                    isOpen={isMemberPriceModalOpen}
+                    onClose={function() { setIsMemberPriceModalOpen(false); }}
+                    onSelectPrice={applyMemberPrice}
                   />
                 </div>
                 <div className="w-2/3 bg-gray-50 p-4 rounded-lg shadow relative">
@@ -932,8 +970,16 @@
                       </tbody>
                     </table>
                   )}
-                  <div className="absolute bottom-4 left-4">
+                  <div className="absolute bottom-4 left-4 flex items-center space-x-2">
                     <p className="text-lg font-semibold">总计: €{calculateTotal()}</p>
+                    {discount > 0 && (
+                      <button
+                        onClick={resetDiscount}
+                        className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                      >
+                        恢复
+                      </button>
+                    )}
                   </div>
                   <div className="absolute bottom-4 right-4">
                     <button

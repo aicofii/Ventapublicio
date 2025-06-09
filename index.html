@@ -36,7 +36,13 @@
     const products = [
       { id: "1001", name: "全脂牛奶", price: 1.20, barcode: "123456789", stock: 50, safetyStock: 20 },
       { id: "1002", name: "切片面包", price: 2.00, barcode: "987654321", stock: 15, safetyStock: 10 },
-      { id: "1003", name: "苹果（公斤）", price: 3.50, barcode: "456789123", stock: 30, safetyStock: 25 }
+      { id: "1003", name: "苹果（公斤）", price: 3.50, barcode: "456789123", stock: 30, safetyStock: 25 },
+      { id: "1004", name: "可乐（500ml）", price: 1.50, barcode: "111222333", stock: 40, safetyStock: 15 },
+      { id: "1005", name: "薯片（100g）", price: 2.00, barcode: "444555666", stock: 25, safetyStock: 10 },
+      { id: "1006", name: "洗洁精（1L）", price: 3.00, barcode: "777888999", stock: 20, safetyStock: 8 },
+      { id: "1007", name: "香蕉（公斤）", price: 2.80, barcode: "222333444", stock: 35, safetyStock: 20 },
+      { id: "1008", name: "西红柿（公斤）", price: 4.00, barcode: "555666777", stock: 28, safetyStock: 15 },
+      { id: "1009", name: "土豆（公斤）", price: 1.80, barcode: "888999111", stock: 50, safetyStock: 30 }
     ];
 
     // Error Boundary Component
@@ -101,10 +107,25 @@
     // Manual Product Modal Component
     function ProductModal(props) {
       const [searchTerm, setSearchTerm] = React.useState("");
+      const [weighName, setWeighName] = React.useState("");
+      const [weighAmount, setWeighAmount] = React.useState("");
+      const [weighPrice, setWeighPrice] = React.useState("1.00");
 
       const filteredProducts = props.products.filter(function(product) {
         return product.name.toLowerCase().includes(searchTerm.toLowerCase());
       });
+
+      // 监听 weighName 变化，自动匹配产品单价
+      React.useEffect(function() {
+        var matchedProduct = props.products.find(function(product) {
+          return product.name.toLowerCase().includes(weighName.toLowerCase());
+        });
+        if (matchedProduct) {
+          setWeighPrice(matchedProduct.price.toFixed(2));
+        } else {
+          setWeighPrice("1.00");
+        }
+      }, [weighName, props.products]);
 
       function handleSelect(product) {
         props.onSelectProduct(product);
@@ -130,44 +151,117 @@
         props.onClose();
       }
 
+      function handleWeighProduct() {
+        if (!weighName || !weighAmount || !weighPrice) {
+          alert("请填写称重产品的名称、重量和单价。");
+          return;
+        }
+        if (parseFloat(weighAmount) <= 0 || parseFloat(weighPrice) <= 0) {
+          alert("重量和单价必须大于0。");
+          return;
+        }
+        var weighProduct = {
+          id: "weigh-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
+          name: weighName + "（" + parseFloat(weighAmount).toFixed(2) + "公斤）",
+          price: parseFloat(weighPrice) * parseFloat(weighAmount),
+          quantity: 1,
+          stock: 0,
+          safetyStock: 0
+        };
+        props.onSelectProduct(weighProduct);
+        setWeighName("");
+        setWeighAmount("");
+        setWeighPrice("1.00");
+        props.onClose();
+      }
+
       if (!props.isOpen) return null;
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-1/3">
-            <h2 className="text-xl font-bold mb-4">搜索产品</h2>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={function(e) { setSearchTerm(e.target.value); }}
-              placeholder="输入产品名称"
-              className="border p-2 rounded w-full mb-4"
-              autoFocus
-            />
-            {searchTerm && filteredProducts.length === 0 && (
+            <h2 className="text-xl font-bold mb-4">添加产品</h2>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold mb-2">搜索现有产品</h3>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={function(e) { setSearchTerm(e.target.value); }}
+                placeholder="输入产品名称"
+                className="border p-2 rounded w-full mb-2"
+                autoFocus
+              />
+              {searchTerm && filteredProducts.length === 0 && (
+                <button
+                  onClick={handleCustomProduct}
+                  className="bg-blue-600 text-white p-2 rounded w-full mb-2 hover:bg-blue-700"
+                >
+                  添加自定义产品："{searchTerm}"（€1.00）
+                </button>
+              )}
+              <div className="max-h-40 overflow-y-auto">
+                {filteredProducts.map(function(product) {
+                  return (
+                    <div
+                      key={product.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                      onClick={function() { handleSelect({ ...product, quantity: 1 }); }}
+                    >
+                      {product.name} - €{product.price.toFixed(2)} (库存: {product.stock})
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold mb-2">称重产品</h3>
+              <input
+                type="text"
+                value={weighName}
+                onChange={function(e) { setWeighName(e.target.value); }}
+                placeholder="输入产品名称（如：苹果）"
+                className="border p-2 rounded w-full mb-2"
+              />
+              <input
+                type="number"
+                value={weighAmount}
+                onChange={function(e) { setWeighAmount(e.target.value); }}
+                placeholder="输入重量（公斤）"
+                className="border p-2 rounded w-full mb-2"
+                min="0"
+                step="0.01"
+              />
+              <div className="relative">
+                <input
+                  type="number"
+                  value={weighPrice}
+                  onChange={function(e) { setWeighPrice(e.target.value); }}
+                  placeholder="输入单价（€/公斤）"
+                  className="border p-2 rounded w-full mb-2"
+                  min="0"
+                  step="0.01"
+                />
+                {props.products.some(function(p) { return p.name.toLowerCase().includes(weighName.toLowerCase()); }) && (
+                  <span className="absolute right-2 top-2 text-sm text-gray-500">
+                    自动匹配
+                  </span>
+                )}
+              </div>
+              {weighAmount && weighPrice && (
+                <p className="text-sm text-gray-600 mb-2">
+                  总价: €{(parseFloat(weighAmount) * parseFloat(weighPrice)).toFixed(2)}
+                </p>
+              )}
               <button
-                onClick={handleCustomProduct}
-                className="bg-blue-600 text-white p-2 rounded w-full mb-4 hover:bg-blue-700"
+                onClick={handleWeighProduct}
+                className="bg-green-600 text-white p-2 rounded w-full hover:bg-green-700"
               >
-                添加自定义产品："{searchTerm}"（€1.00）
+                添加称重产品
               </button>
-            )}
-            <div className="max-h-64 overflow-y-auto">
-              {filteredProducts.map(function(product) {
-                return (
-                  <div
-                    key={product.id}
-                    className="p-2 hover:bg-gray-100 cursor-pointer border-b"
-                    onClick={function() { handleSelect({ ...product, quantity: 1 }); }}
-                  >
-                    {product.name} - €{product.price.toFixed(2)} (库存: {product.stock})
-                  </div>
-                );
-              })}
             </div>
             <button
               onClick={props.onClose}
-              className="mt-4 bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
+              className="bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
             >
               关闭
             </button>

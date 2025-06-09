@@ -17,20 +17,170 @@
       if (!window.React || !window.ReactDOM || !window.Babel) {
         document.getElementById('error-message').classList.remove('hidden');
         document.getElementById('error-message').innerText = 
-          '错误：无法加载必要资源。请检查网络连接或尝试使用其他浏览器（如 Chrome、Firefox）。';
+          localStorage.getItem('language') === 'es' 
+            ? 'Error: No se pudieron cargar los recursos necesarios. Verifica tu conexión a internet o intenta con otro navegador (como Chrome o Firefox).'
+            : '错误：无法加载必要资源。请检查网络连接或尝试使用其他浏览器（如 Chrome、Firefox）。';
       }
     });
   </script>
 </head>
 <body class="bg-gray-100 font-sans">
   <!-- Fallback message if JavaScript fails -->
-  <div id="error-message" className="hidden text-center p-4 text-red-600">
-    错误：无法加载应用程序。请检查网络连接并刷新页面。
-  </div>
+  <div id="error-message" class="hidden text-center p-4 text-red-600"></div>
   <!-- Root element for React -->
   <div id="root"></div>
 
   <script type="text/babel">
+    // Translations object
+    const translations = {
+      zh: {
+        title: "票据列表 - 超市",
+        pos: "POS",
+        sales: "销售",
+        inventory: "库存",
+        membership: "会员",
+        payments: "支付",
+        reports: "报告",
+        users: "用户",
+        tickets: "票据",
+        debt: "记账",
+        ticketList: "票据列表",
+        searchTickets: "查询票据",
+        noTickets: "没有找到票据。请尝试在销售页面完成一笔交易。",
+        transactionId: "交易ID",
+        type: "类型",
+        timestamp: "时间",
+        customer: "客户",
+        total: "总计",
+        actions: "操作",
+        viewDetails: "查看详情",
+        invoice: "发票",
+        batchInvoice: "批量开票",
+        searchPanel: "查询票据",
+        searchCustomer: "客户",
+        searchCustomerPlaceholder: "输入客户名称",
+        searchType: "类型",
+        allTypes: "所有类型",
+        ticket: "小票",
+        invoiceType: "发票",
+        searchDate: "日期",
+        searchAmount: "金额",
+        searchAmountPlaceholder: "输入金额",
+        cancel: "取消",
+        confirm: "确定",
+        ticketDetails: "票据详情",
+        customerName: "客户",
+        defaultCustomer: "普通客户",
+        phone: "电话",
+        taxId: "税号",
+        paymentMethod: "支付方式",
+        card: "刷卡",
+        cash: "现金",
+        includedTickets: "包含的小票",
+        itemList: "商品列表",
+        product: "产品",
+        unitPrice: "单价",
+        quantity: "数量",
+        discount: "折扣",
+        close: "关闭",
+        createCustomer: "创建客户",
+        customerCode: "客户代码",
+        customerCodePlaceholder: "请输入客户代码",
+        customerNamePlaceholder: "请输入客户名称",
+        customerTaxNumber: "客户税号",
+        customerTaxNumberPlaceholder: "请输入客户税号",
+        customerAddress: "客户地址",
+        customerAddressPlaceholder: "请输入客户地址",
+        customerPhone: "客户电话",
+        customerPhonePlaceholder: "请输入客户电话",
+        save: "保存",
+        errorCustomerRequired: "客户代码、客户名称和电话为必填项！",
+        invoiceInfo: "填写发票信息",
+        confirmInvoice: "确认开发票",
+        confirmInvoicePrompt: "确认为此票据开发票吗？",
+        previousPage: "上一页",
+        nextPage: "下一页",
+        pageInfo: "第 {current} 页 / 共 {total} 页",
+        selectLanguage: "选择语言",
+        spanish: "西班牙语",
+        chinese: "中文",
+        errorRender: "渲染应用程序时出错：{error}。请查看浏览器控制台或联系支持。"
+      },
+      es: {
+        title: "Lista de Tickets - Supermercado",
+        pos: "POS",
+        sales: "Ventas",
+        inventory: "Inventario",
+        membership: "Membresía",
+        payments: "Pagos",
+        reports: "Informes",
+        users: "Usuarios",
+        tickets: "Tickets",
+        debt: "Deuda",
+        ticketList: "Lista de Tickets",
+        searchTickets: "Buscar Tickets",
+        noTickets: "No se encontraron tickets. Intenta completar una transacción en la página de ventas.",
+        transactionId: "ID de Transacción",
+        type: "Tipo",
+        timestamp: "Fecha y Hora",
+        customer: "Cliente",
+        total: "Total",
+        actions: "Acciones",
+        viewDetails: "Ver Detalles",
+        invoice: "Factura",
+        batchInvoice: "Facturación Masiva",
+        searchPanel: "Buscar Tickets",
+        searchCustomer: "Cliente",
+        searchCustomerPlaceholder: "Ingresa el nombre del cliente",
+        searchType: "Tipo",
+        allTypes: "Todos los Tipos",
+        ticket: "Ticket",
+        invoiceType: "Factura",
+        searchDate: "Fecha",
+        searchAmount: "Monto",
+        searchAmountPlaceholder: "Ingresa el monto",
+        cancel: "Cancelar",
+        confirm: "Confirmar",
+        ticketDetails: "Detalles del Ticket",
+        customerName: "Cliente",
+        defaultCustomer: "Cliente Normal",
+        phone: "Teléfono",
+        taxId: "Número de Identificación Fiscal",
+        paymentMethod: "Método de Pago",
+        card: "Tarjeta",
+        cash: "Efectivo",
+        includedTickets: "Tickets Incluidos",
+        itemList: "Lista de Productos",
+        product: "Producto",
+        unitPrice: "Precio Unitario",
+        quantity: "Cantidad",
+        discount: "Descuento",
+        close: "Cerrar",
+        createCustomer: "Crear Cliente",
+        customerCode: "Código de Cliente",
+        customerCodePlaceholder: "Ingresa el código de cliente",
+        customerNamePlaceholder: "Ingresa el nombre del cliente",
+        customerTaxNumber: "Número de Identificación Fiscal",
+        customerTaxNumberPlaceholder: "Ingresa el número de identificación fiscal",
+        customerAddress: "Dirección del Cliente",
+        customerAddressPlaceholder: "Ingresa la dirección del cliente",
+        customerPhone: "Teléfono del Cliente",
+        customerPhonePlaceholder: "Ingresa el teléfono del cliente",
+        save: "Guardar",
+        errorCustomerRequired: "¡El código, nombre y teléfono del cliente son obligatorios!",
+        invoiceInfo: "Completar Información de Factura",
+        confirmInvoice: "Confirmar Facturación",
+        confirmInvoicePrompt: "¿Confirmar la emisión de una factura para este ticket?",
+        previousPage: "Página Anterior",
+        nextPage: "Página Siguiente",
+        pageInfo: "Página {current} de {total}",
+        selectLanguage: "Seleccionar Idioma",
+        spanish: "Español",
+        chinese: "Chino",
+        errorRender: "Error al renderizar la aplicación: {error}. Consulta la consola del navegador o contacta al soporte."
+      }
+    };
+
     // Error Boundary Component
     class ErrorBoundary extends React.Component {
       state = { hasError: false, errorMessage: '' };
@@ -41,7 +191,7 @@
         if (this.state.hasError) {
           return (
             <div className="text-red-600 p-4 text-center">
-              渲染应用程序时出错：{this.state.errorMessage}。请查看浏览器控制台或联系支持。
+              {this.props.t.errorRender.replace('{error}', this.state.errorMessage)}
             </div>
           );
         }
@@ -50,7 +200,7 @@
     }
 
     // Search Panel Component
-    function SearchPanel({ isOpen, onClose, onSearch, tickets }) {
+    function SearchPanel({ isOpen, onClose, onSearch, tickets, t }) {
       const [searchCustomer, setSearchCustomer] = React.useState("");
       const [searchType, setSearchType] = React.useState("");
       const [searchDate, setSearchDate] = React.useState("");
@@ -59,9 +209,9 @@
       const handleSearch = () => {
         const filteredTickets = tickets.filter((ticket) => {
           const matchesCustomer = searchCustomer 
-            ? (ticket.customerName || "普通客户").toLowerCase().includes(searchCustomer.toLowerCase()) 
+            ? (ticket.customerName || t.defaultCustomer).toLowerCase().includes(searchCustomer.toLowerCase()) 
             : true;
-          const matchesType = searchType ? ticket.type === searchType : true;
+          const matchesType = searchType ? ticket.type === (searchType === "invoice" ? t.invoiceType : t.ticket) : true;
           const matchesDate = searchDate ? ticket.timestamp.includes(searchDate) : true;
           const matchesAmount = searchAmount 
             ? ticket.total.toFixed(2) === parseFloat(searchAmount).toFixed(2) 
@@ -83,33 +233,33 @@
           }`}
         >
           <div className="p-6 h-full flex flex-col">
-            <h2 className="text-xl font-bold mb-4">查询票据</h2>
+            <h2 className="text-xl font-bold mb-4">{t.searchPanel}</h2>
             <div className="flex-1 space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">客户</label>
+                <label className="block text-sm font-medium mb-1">{t.searchCustomer}</label>
                 <input
                   type="text"
                   value={searchCustomer}
                   onChange={(e) => setSearchCustomer(e.target.value)}
-                  placeholder="输入客户名称"
+                  placeholder={t.searchCustomerPlaceholder}
                   className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">类型</label>
+                <label className="block text-sm font-medium mb-1">{t.searchType}</label>
                 <select
                   value={searchType}
                   onChange={(e) => setSearchType(e.target.value)}
                   className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">所有类型</option>
-                  <option value="小票">小票</option>
-                  <option value="发票">发票</option>
+                  <option value="">{t.allTypes}</option>
+                  <option value="ticket">{t.ticket}</option>
+                  <option value="invoice">{t.invoiceType}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">日期</label>
+                <label className="block text-sm font-medium mb-1">{t.searchDate}</label>
                 <input
                   type="date"
                   value={searchDate}
@@ -118,13 +268,13 @@
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">金额</label>
+                <label className="block text-sm font-medium mb-1">{t.searchAmount}</label>
                 <input
                   type="number"
                   step="0.01"
                   value={searchAmount}
                   onChange={(e) => setSearchAmount(e.target.value)}
-                  placeholder="输入金额"
+                  placeholder={t.searchAmountPlaceholder}
                   className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -134,13 +284,13 @@
                 onClick={onClose}
                 className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
               >
-                取消
+                {t.cancel}
               </button>
               <button
                 onClick={handleSearch}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               >
-                确定
+                {t.confirm}
               </button>
             </div>
           </div>
@@ -149,28 +299,28 @@
     }
 
     // Ticket Details Modal Component
-    function TicketDetailsModal({ isOpen, onClose, ticket }) {
+    function TicketDetailsModal({ isOpen, onClose, ticket, t }) {
       if (!isOpen || !ticket) return null;
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-1/2">
-            <h2 className="text-xl font-bold mb-4">票据详情 - {ticket.id}</h2>
-            <p className="mb-2"><strong>时间：</strong>{ticket.timestamp}</p>
-            <p className="mb-2"><strong>客户：</strong>{ticket.customerName ? ticket.customerName : "普通客户"}</p>
-            {ticket.type === "发票" && (
+            <h2 className="text-xl font-bold mb-4">{t.ticketDetails} - {ticket.id}</h2>
+            <p className="mb-2"><strong>{t.timestamp}：</strong>{ticket.timestamp}</p>
+            <p className="mb-2"><strong>{t.customerName}：</strong>{ticket.customerName ? ticket.customerName : t.defaultCustomer}</p>
+            {ticket.type === t.invoiceType && (
               <>
-                {ticket.phone && <p className="mb-2"><strong>电话：</strong>{ticket.phone}</p>}
-                {ticket.taxId && <p className="mb-2"><strong>税号：</strong>{ticket.taxId}</p>}
+                {ticket.phone && <p className="mb-2"><strong>{t.phone}：</strong>{ticket.phone}</p>}
+                {ticket.taxId && <p className="mb-2"><strong>{t.taxId}：</strong>{ticket.taxId}</p>}
               </>
             )}
             {ticket.paymentMethod && (
-              <p className="mb-2"><strong>支付方式：</strong>{ticket.paymentMethod === "card" ? "刷卡" : "现金"}</p>
+              <p className="mb-2"><strong>{t.paymentMethod}：</strong>{ticket.paymentMethod === "card" ? t.card : t.cash}</p>
             )}
-            <p className="mb-4"><strong>总计：</strong>€{ticket.total.toFixed(2)}</p>
+            <p className="mb-4"><strong>{t.total}：</strong>€{ticket.total.toFixed(2)}</p>
             {ticket.tickets && (
               <>
-                <h3 className="text-lg font-semibold mb-2">包含的小票</h3>
+                <h3 className="text-lg font-semibold mb-2">{t.includedTickets}</h3>
                 <ul className="list-disc pl-5 mb-4">
                   {ticket.tickets.map((ticketId, index) => (
                     <li key={index}>{ticketId}</li>
@@ -178,14 +328,14 @@
                 </ul>
               </>
             )}
-            <h3 className="text-lg font-semibold mb-2">商品列表</h3>
+            <h3 className="text-lg font-semibold mb-2">{t.itemList}</h3>
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-gray-200">
-                  <th className="border p-3 text-left">产品</th>
-                  <th className="border p-3 text-left">单价</th>
-                  <th className="border p-3 text-left">数量</th>
-                  <th className="border p-3 text-left">总计</th>
+                  <th className="border p-3 text-left">{t.product}</th>
+                  <th className="border p-3 text-left">{t.unitPrice}</th>
+                  <th className="border p-3 text-left">{t.quantity}</th>
+                  <th className="border p-3 text-left">{t.total}</th>
                 </tr>
               </thead>
               <tbody>
@@ -200,13 +350,13 @@
               </tbody>
             </table>
             {ticket.discount !== undefined && (
-              <p className="mt-4"><strong>折扣：</strong>{ticket.discount}%</p>
+              <p className="mt-4"><strong>{t.discount}：</strong>{ticket.discount}%</p>
             )}
             <button
               onClick={onClose}
               className="mt-4 bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
             >
-              关闭
+              {t.close}
             </button>
           </div>
         </div>
@@ -214,7 +364,7 @@
     }
 
     // Create Customer Modal Component
-    function CreateCustomerModal({ isOpen, onClose, onSave }) {
+    function CreateCustomerModal({ isOpen, onClose, onSave, t }) {
       const [formData, setFormData] = React.useState({
         id: '',
         name: '',
@@ -230,7 +380,7 @@
 
       const handleSubmit = () => {
         if (!formData.id || !formData.name || !formData.phone) {
-          alert('客户代码、客户名称和电话为必填项！');
+          alert(t.errorCustomerRequired);
           return;
         }
         onSave(formData);
@@ -243,63 +393,63 @@
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">创建客户</h3>
+            <h3 className="text-lg font-bold mb-4">{t.createCustomer}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户代码</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerCode}</label>
                 <input
                   type="text"
                   name="id"
                   value={formData.id}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户代码"
+                  placeholder={t.customerCodePlaceholder}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户名称</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerName}</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户名称"
+                  placeholder={t.customerNamePlaceholder}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户税号</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerTaxNumber}</label>
                 <input
                   type="text"
                   name="taxNumber"
                   value={formData.taxNumber}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户税号"
+                  placeholder={t.customerTaxNumberPlaceholder}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户地址</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerAddress}</label>
                 <input
                   type="text"
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户地址"
+                  placeholder={t.customerAddressPlaceholder}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户电话</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerPhone}</label>
                 <input
                   type="text"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户电话"
+                  placeholder={t.customerPhonePlaceholder}
                   required
                 />
               </div>
@@ -309,13 +459,13 @@
                 onClick={onClose}
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
               >
-                取消
+                {t.cancel}
               </button>
               <button
                 onClick={handleSubmit}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               >
-                保存
+                {t.save}
               </button>
             </div>
           </div>
@@ -324,7 +474,7 @@
     }
 
     // Invoice Modal Component for Regular Customers
-    function InvoiceModal({ isOpen, onClose, onConfirm, ticketId }) {
+    function InvoiceModal({ isOpen, onClose, onConfirm, ticketId, t }) {
       const [customerName, setCustomerName] = React.useState("");
       const [phone, setPhone] = React.useState("");
       const [taxId, setTaxId] = React.useState("");
@@ -386,35 +536,35 @@
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-1/3">
-            <h2 className="text-xl font-bold mb-4">填写发票信息 - {ticketId}</h2>
+            <h2 className="text-xl font-bold mb-4">{t.invoiceInfo} - {ticketId}</h2>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">客户名称</label>
+              <label className="block text-sm font-medium mb-1">{t.customerName}</label>
               <input
                 type="text"
                 value={customerName}
                 onChange={handleCustomerNameChange}
-                placeholder="输入客户名称"
+                placeholder={t.customerNamePlaceholder}
                 className="border p-2 rounded w-full"
                 autoFocus
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">电话</label>
+              <label className="block text-sm font-medium mb-1">{t.phone}</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={handlePhoneChange}
-                placeholder="输入电话号码"
+                placeholder={t.customerPhonePlaceholder}
                 className="border p-2 rounded w-full"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">税号</label>
+              <label className="block text-sm font-medium mb-1">{t.taxId}</label>
               <input
                 type="text"
                 value={taxId}
                 onChange={handleTaxIdChange}
-                placeholder="输入税号"
+                placeholder={t.customerTaxNumberPlaceholder}
                 className="border p-2 rounded w-full"
               />
             </div>
@@ -422,24 +572,25 @@
               onClick={handleConfirm}
               className="bg-blue-600 text-white p-2 rounded w-full mb-4 hover:bg-blue-700"
             >
-              确认
+              {t.confirm}
             </button>
             <button
               onClick={() => setIsCreateCustomerModalOpen(true)}
               className="bg-green-600 text-white p-2 rounded w-full mb-4 hover:bg-green-700"
             >
-              创建客户
+              {t.createCustomer}
             </button>
             <button
               onClick={onClose}
               className="bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
             >
-              取消
+              {t.cancel}
             </button>
             <CreateCustomerModal
               isOpen={isCreateCustomerModalOpen}
               onClose={() => setIsCreateCustomerModalOpen(false)}
               onSave={handleSaveCustomer}
+              t={t}
             />
           </div>
         </div>
@@ -447,25 +598,25 @@
     }
 
     // Confirm Invoice Modal for Customers with Existing Info
-    function ConfirmInvoiceModal({ isOpen, onClose, onConfirm, ticketId }) {
+    function ConfirmInvoiceModal({ isOpen, onClose, onConfirm, ticketId, t }) {
       if (!isOpen) return null;
 
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-1/3">
-            <h2 className="text-xl font-bold mb-4">确认开发票 - {ticketId}</h2>
-            <p className="mb-4">确认为此票据开发票吗？</p>
+            <h2 className="text-xl font-bold mb-4">{t.confirmInvoice} - {ticketId}</h2>
+            <p className="mb-4">{t.confirmInvoicePrompt}</p>
             <button
               onClick={onConfirm}
               className="bg-blue-600 text-white p-2 rounded w-full mb-4 hover:bg-blue-700"
             >
-              确认
+              {t.confirm}
             </button>
             <button
               onClick={onClose}
               className="bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
             >
-              取消
+              {t.cancel}
             </button>
           </div>
         </div>
@@ -481,7 +632,29 @@
       const [isConfirmInvoiceModalOpen, setIsConfirmInvoiceModalOpen] = React.useState(false);
       const [currentInvoiceTicketId, setCurrentInvoiceTicketId] = React.useState(null);
       const [currentPage, setCurrentPage] = React.useState(1);
+      const [language, setLanguage] = React.useState(localStorage.getItem('language') || 'zh');
       const ticketsPerPage = 10;
+
+      // Function to format date to DD/MM/AAAA
+      const formatDate = (timestamp) => {
+        const date = new Date(timestamp);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
+      // Update document language and title on language change
+      React.useEffect(() => {
+        document.documentElement.lang = language;
+        document.title = translations[language].title;
+      }, [language]);
+
+      // Handle language change
+      const handleLanguageChange = (lang) => {
+        setLanguage(lang);
+        localStorage.setItem('language', lang);
+      };
 
       // Load tickets and invoices from localStorage on component mount and listen for storage changes
       React.useEffect(() => {
@@ -489,22 +662,26 @@
           const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
           const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
 
-          // Initialize type as "小票" for tickets if not present
+          // Initialize type as "小票" (or translation equivalent) for tickets if not present
           const updatedTickets = savedTickets.map(ticket => ({
             ...ticket,
-            type: ticket.type || "小票"
+            type: ticket.type || translations[language].ticket
           }));
+
+          // Filter out tickets that are included in any invoice's tickets array
+          const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
+          const filteredTickets = updatedTickets.filter(ticket => !invoicedTicketIds.includes(ticket.id));
 
           // Format invoices to match ticket structure for display
           const formattedInvoices = savedInvoices.map(invoice => ({
             ...invoice,
-            type: "发票",
+            type: translations[language].invoiceType,
             paymentMethod: undefined, // Invoices don't have paymentMethod
             discount: 0 // Invoices don't have discount in current structure
           }));
 
           // Combine tickets and invoices, sort by timestamp in descending order
-          const combinedTickets = [...updatedTickets, ...formattedInvoices].sort((a, b) => 
+          const combinedTickets = [...filteredTickets, ...formattedInvoices].sort((a, b) => 
             new Date(b.timestamp) - new Date(a.timestamp)
           );
 
@@ -515,7 +692,7 @@
 
         window.addEventListener('storage', loadTicketsAndInvoices);
         return () => window.removeEventListener('storage', loadTicketsAndInvoices);
-      }, []);
+      }, [language]);
 
       const handleSearch = (filteredTickets) => {
         const sortedFilteredTickets = filteredTickets.sort((a, b) => 
@@ -530,9 +707,9 @@
       };
 
       const handleInvoice = (ticket) => {
-        if (ticket.type === "发票") return; // Prevent invoicing an invoice
+        if (ticket.type === translations[language].invoiceType) return; // Prevent invoicing an invoice
         setCurrentInvoiceTicketId(ticket.id);
-        if (ticket.customerName && ticket.customerName !== "普通客户") {
+        if (ticket.customerName && ticket.customerName !== translations[language].defaultCustomer) {
           setIsConfirmInvoiceModalOpen(true);
         } else {
           setIsInvoiceModalOpen(true);
@@ -541,8 +718,8 @@
 
       const handleInvoiceConfirm = ({ customerName, phone, taxId }) => {
         const updatedTickets = tickets.map(ticket => 
-          ticket.id === currentInvoiceTicketId && ticket.type !== "发票"
-            ? { ...ticket, type: "发票", customerName, phone, taxId }
+          ticket.id === currentInvoiceTicketId && ticket.type !== translations[language].invoiceType
+            ? { ...ticket, type: translations[language].invoiceType, customerName, phone, taxId }
             : ticket
         );
         // Update only the tickets array in localStorage, preserve invoices
@@ -553,8 +730,8 @@
 
       const handleConfirmInvoice = () => {
         const updatedTickets = tickets.map(ticket => 
-          ticket.id === currentInvoiceTicketId && ticket.type !== "发票"
-            ? { ...ticket, type: "发票" }
+          ticket.id === currentInvoiceTicketId && ticket.type !== translations[language].invoiceType
+            ? { ...ticket, type: translations[language].invoiceType }
             : ticket
         );
         // Update only the tickets array in localStorage, preserve invoices
@@ -574,65 +751,67 @@
         setCurrentPage(pageNumber);
       };
 
+      const t = translations[language];
+
       return (
-        <ErrorBoundary>
+        <ErrorBoundary t={t}>
           <div className="flex h-screen">
             {/* Sidebar */}
             <div className="w-16 bg-gray-900 text-white flex flex-col items-center py-4 fixed h-full shadow-lg">
-              <h1 className="text-lg font-bold mb-8">POS</h1>
+              <h1 className="text-lg font-bold mb-8">{t.pos}</h1>
               <nav className="flex flex-col space-y-4">
                 <a
                   href="index.html"
                   className="p-2 rounded-full hover:bg-gray-700"
-                  title="销售"
+                  title={t.sales}
                 >
                   🛒
                 </a>
                 <a
                   href="#"
                   className="p-2 rounded-full hover:bg-gray-700"
-                  title="库存"
+                  title={t.inventory}
                 >
                   📦
                 </a>
                 <a
                   href="#"
                   className="p-2 rounded-full hover:bg-gray-700"
-                  title="会员"
+                  title={t.membership}
                 >
                   👤
                 </a>
                 <a
                   href="#"
                   className="p-2 rounded-full hover:bg-gray-700"
-                  title="支付"
+                  title={t.payments}
                 >
                   💳
                 </a>
                 <a
                   href="#"
                   className="p-2 rounded-full hover:bg-gray-700"
-                  title="报告"
+                  title={t.reports}
                 >
                   📊
                 </a>
                 <a
                   href="cliente.html"
                   className="p-2 rounded-full hover:bg-gray-700"
-                  title="用户"
+                  title={t.users}
                 >
                   🔒
                 </a>
                 <button
                   className="p-2 rounded-full bg-blue-600"
-                  title="票据"
+                  title={t.tickets}
                 >
                   🎫
                 </button>
                 <a
                   href="deuda.html"
                   className="p-2 rounded-full hover:bg-gray-700"
-                  title="记账"
+                  title={t.debt}
                 >
                   📋
                 </a>
@@ -641,35 +820,45 @@
             {/* Main Content */}
             <div className="ml-16 w-full bg-white p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">票据列表</h2>
+                <div className="flex items-center">
+                  <h2 className="text-2xl font-bold mr-4">{t.ticketList}</h2>
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    className="p-1 rounded bg-gray-200 text-sm"
+                  >
+                    <option value="es">{t.spanish}</option>
+                    <option value="zh">{t.chinese}</option>
+                  </select>
+                </div>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => window.location.href = 'batch_invoice.html'}
                     className="bg-green-600 text-white p-3 rounded text-lg hover:bg-green-700"
                   >
-                    批量开票
+                    {t.batchInvoice}
                   </button>
                   <button
                     onClick={() => setIsSearchPanelOpen(true)}
                     className="bg-blue-600 text-white p-3 rounded text-lg hover:bg-blue-700"
                   >
-                    查询票据
+                    {t.searchTickets}
                   </button>
                 </div>
               </div>
               {tickets.length === 0 ? (
-                <p className="text-gray-500">没有找到票据。请尝试在销售页面完成一笔交易。</p>
+                <p className="text-gray-500">{t.noTickets}</p>
               ) : (
                 <div>
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-gray-200">
-                        <th className="border p-3 text-left">交易ID</th>
-                        <th className="border p-3 text-left">类型</th>
-                        <th className="border p-3 text-left">时间</th>
-                        <th className="border p-3 text-left">客户</th>
-                        <th className="border p-3 text-left">总计</th>
-                        <th className="border p-3 text-left">操作</th>
+                        <th className="border p-3 text-left">{t.transactionId}</th>
+                        <th className="border p-3 text-left">{t.type}</th>
+                        <th className="border p-3 text-left">{t.timestamp}</th>
+                        <th className="border p-3 text-left">{t.customer}</th>
+                        <th className="border p-3 text-left">{t.total}</th>
+                        <th className="border p-3 text-left">{t.actions}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -677,22 +866,22 @@
                         <tr key={ticket.id}>
                           <td className="border p-3">{ticket.id}</td>
                           <td className="border p-3">{ticket.type}</td>
-                          <td className="border p-3">{ticket.timestamp}</td>
-                          <td className="border p-3">{ticket.customerName ? ticket.customerName : "普通客户"}</td>
+                          <td className="border p-3">{formatDate(ticket.timestamp)}</td>
+                          <td className="border p-3">{ticket.customerName ? ticket.customerName : t.defaultCustomer}</td>
                           <td className="border p-3">€{ticket.total.toFixed(2)}</td>
                           <td className="border p-3 flex space-x-2">
                             <button
                               onClick={() => handleViewDetails(ticket)}
                               className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                             >
-                              查看详情
+                              {t.viewDetails}
                             </button>
                             <button
                               onClick={() => handleInvoice(ticket)}
                               className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                              disabled={ticket.type === "发票"}
+                              disabled={ticket.type === t.invoiceType}
                             >
-                              发票
+                              {t.invoice}
                             </button>
                           </td>
                         </tr>
@@ -707,17 +896,17 @@
                         disabled={currentPage === 1}
                         className="bg-gray-300 text-gray-700 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-400"
                       >
-                        上一页
+                        {t.previousPage}
                       </button>
                       <span className="text-gray-700">
-                        第 {currentPage} 页 / 共 {totalPages} 页
+                        {t.pageInfo.replace('{current}', currentPage).replace('{total}', totalPages)}
                       </span>
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
                         className="bg-gray-300 text-gray-700 px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-400"
                       >
-                        下一页
+                        {t.nextPage}
                       </button>
                     </div>
                   )}
@@ -727,30 +916,41 @@
                 isOpen={isSearchPanelOpen}
                 onClose={() => setIsSearchPanelOpen(false)}
                 onSearch={handleSearch}
-                tickets={[...JSON.parse(localStorage.getItem("tickets") || "[]"), 
-                         ...JSON.parse(localStorage.getItem("invoices") || "[]").map(invoice => ({
-                           ...invoice,
-                           type: "发票",
-                           paymentMethod: undefined,
-                           discount: 0
-                         }))]} // Pass combined tickets and invoices for filtering
+                tickets={[...JSON.parse(localStorage.getItem("tickets") || "[]").filter(ticket => {
+                  const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+                  const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
+                  return !invoicedTicketIds.includes(ticket.id);
+                }).map(ticket => ({
+                  ...ticket,
+                  type: ticket.type || t.ticket
+                })), 
+                 ...JSON.parse(localStorage.getItem("invoices") || "[]").map(invoice => ({
+                   ...invoice,
+                   type: t.invoiceType,
+                   paymentMethod: undefined,
+                   discount: 0
+                 }))]}
+                t={t}
               />
               <TicketDetailsModal
                 isOpen={!!selectedTicket}
                 onClose={() => setSelectedTicket(null)}
                 ticket={selectedTicket}
+                t={t}
               />
               <InvoiceModal
                 isOpen={isInvoiceModalOpen}
                 onClose={() => setIsInvoiceModalOpen(false)}
                 onConfirm={handleInvoiceConfirm}
                 ticketId={currentInvoiceTicketId}
+                t={t}
               />
               <ConfirmInvoiceModal
                 isOpen={isConfirmInvoiceModalOpen}
                 onClose={() => setIsConfirmInvoiceModalOpen(false)}
                 onConfirm={handleConfirmInvoice}
                 ticketId={currentInvoiceTicketId}
+                t={t}
               />
             </div>
           </div>

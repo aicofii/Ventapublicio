@@ -17,20 +17,132 @@
       if (!window.React || !window.ReactDOM || !window.Babel) {
         document.getElementById('error-message').classList.remove('hidden');
         document.getElementById('error-message').innerText = 
-          '错误：无法加载必要资源。请检查网络连接或尝试使用其他浏览器（如 Chrome、Firefox）。';
+          localStorage.getItem('language') === 'es' 
+            ? 'Error: No se pudieron cargar los recursos necesarios. Verifica tu conexión a internet o intenta con otro navegador (como Chrome o Firefox).'
+            : '错误：无法加载必要资源。请检查网络连接或尝试使用其他浏览器（如 Chrome、Firefox）。';
       }
     });
   </script>
 </head>
 <body class="bg-gray-100 font-sans">
   <!-- Fallback message if JavaScript fails -->
-  <div id="error-message" className="hidden text-center p-4 text-red-600">
-    错误：无法加载应用程序。请检查网络连接并刷新页面。
-  </div>
+  <div id="error-message" className="hidden text-center p-4 text-red-600"></div>
   <!-- Root element for React -->
   <div id="root"></div>
 
   <script type="text/babel">
+    // Translations object
+    const translations = {
+      zh: {
+        title: "批量开票 - 超市",
+        pos: "POS",
+        sales: "销售",
+        inventory: "库存",
+        membership: "会员",
+        payments: "支付",
+        reports: "报告",
+        users: "用户",
+        tickets: "票据",
+        debt: "记账",
+        batchInvoice: "批量开票",
+        return: "返回",
+        search: "查询",
+        ticketId: "票号",
+        amount: "金额",
+        date: "日期",
+        availableTickets: "可用小票",
+        noTickets: "没有找到符合条件的小票",
+        selectedTickets: "已选小票",
+        noSelectedTickets: "暂无已选小票",
+        clear: "清空",
+        createInvoice: "开票",
+        totalAmount: "共 €{amount}",
+        ticketIdPlaceholder: "输入票号",
+        amountPlaceholder: "输入金额",
+        customer: "客户",
+        total: "总计",
+        actions: "操作",
+        invoiceInfo: "填写发票信息",
+        createCustomer: "创建客户",
+        customerCode: "客户代码",
+        customerCodePlaceholder: "请输入客户代码",
+        customerName: "客户名称",
+        customerNamePlaceholder: "请输入客户名称",
+        customerTaxNumber: "客户税号",
+        customerTaxNumberPlaceholder: "请输入客户税号",
+        customerAddress: "客户地址",
+        customerAddressPlaceholder: "请输入客户地址",
+        customerPhone: "客户电话",
+        customerPhonePlaceholder: "请输入客户电话",
+        cancel: "取消",
+        confirm: "确认",
+        save: "保存",
+        errorCustomerRequired: "客户代码、客户名称和电话为必填项！",
+        errorNoTicketsSelected: "请至少选择一张小票进行开票！",
+        errorGenerateInvoice: "生成发票时出错，请查看控制台或联系支持。",
+        selectLanguage: "选择语言",
+        spanish: "西班牙语",
+        chinese: "中文",
+        errorRender: "渲染应用程序时出错：{error}。请查看浏览器控制台或联系支持。",
+        defaultCustomer: "普通客户",
+        ticket: "小票"
+      },
+      es: {
+        title: "Facturación Masiva - Supermercado",
+        pos: "POS",
+        sales: "Ventas",
+        inventory: "Inventario",
+        membership: "Membresía",
+        payments: "Pagos",
+        reports: "Informes",
+        users: "Usuarios",
+        tickets: "Tickets",
+        debt: "Deuda",
+        batchInvoice: "Facturación Masiva",
+        return: "Regresar",
+        search: "Buscar",
+        ticketId: "Número de Ticket",
+        amount: "Monto",
+        date: "Fecha",
+        availableTickets: "Tickets Disponibles",
+        noTickets: "No se encontraron tickets que coincidan con los criterios.",
+        selectedTickets: "Tickets Seleccionados",
+        noSelectedTickets: "No hay tickets seleccionados.",
+        clear: "Vaciar",
+        createInvoice: "Facturar",
+        totalAmount: "Total €{amount}",
+        ticketIdPlaceholder: "Ingresa el número de ticket",
+        amountPlaceholder: "Ingresa el monto",
+        customer: "Cliente",
+        total: "Total",
+        actions: "Acciones",
+        invoiceInfo: "Completar Información de Factura",
+        createCustomer: "Crear Cliente",
+        customerCode: "Código de Cliente",
+        customerCodePlaceholder: "Ingresa el código de cliente",
+        customerName: "Nombre del Cliente",
+        customerNamePlaceholder: "Ingresa el nombre del cliente",
+        customerTaxNumber: "Número de Identificación Fiscal",
+        customerTaxNumberPlaceholder: "Ingresa el número de identificación fiscal",
+        customerAddress: "Dirección del Cliente",
+        customerAddressPlaceholder: "Ingresa la dirección del cliente",
+        customerPhone: "Teléfono del Cliente",
+        customerPhonePlaceholder: "Ingresa el teléfono del cliente",
+        cancel: "Cancelar",
+        confirm: "Confirmar",
+        save: "Guardar",
+        errorCustomerRequired: "¡El código, nombre y teléfono del cliente son obligatorios!",
+        errorNoTicketsSelected: "¡Por favor, selecciona al menos un ticket para facturar!",
+        errorGenerateInvoice: "Error al generar la factura, consulta la consola o contacta al soporte.",
+        selectLanguage: "Seleccionar Idioma",
+        spanish: "Español",
+        chinese: "Chino",
+        errorRender: "Error al renderizar la aplicación: {error}. Consulta la consola del navegador o contacta al soporte.",
+        defaultCustomer: "Cliente Normal",
+        ticket: "Ticket"
+      }
+    };
+
     // Error Boundary Component
     class ErrorBoundary extends React.Component {
       state = { hasError: false, errorMessage: '' };
@@ -41,7 +153,7 @@
         if (this.state.hasError) {
           return (
             <div className="text-red-600 p-4 text-center">
-              渲染应用程序时出错：{this.state.errorMessage}。请查看浏览器控制台或联系支持。
+              {this.props.t.errorRender.replace('{error}', this.state.errorMessage)}
             </div>
           );
         }
@@ -50,7 +162,7 @@
     }
 
     // Create Customer Modal Component
-    function CreateCustomerModal({ isOpen, onClose, onSave }) {
+    function CreateCustomerModal({ isOpen, onClose, onSave, t }) {
       const [formData, setFormData] = React.useState({
         id: '',
         name: '',
@@ -66,7 +178,7 @@
 
       const handleSubmit = () => {
         if (!formData.id || !formData.name || !formData.phone) {
-          alert('客户代码、客户名称和电话为必填项！');
+          alert(t.errorCustomerRequired);
           return;
         }
         onSave(formData);
@@ -79,63 +191,63 @@
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">创建客户</h3>
+            <h3 className="text-lg font-bold mb-4">{t.createCustomer}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户代码</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerCode}</label>
                 <input
                   type="text"
                   name="id"
                   value={formData.id}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户代码"
+                  placeholder={t.customerCodePlaceholder}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户名称</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerName}</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户名称"
+                  placeholder={t.customerNamePlaceholder}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户税号</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerTaxNumber}</label>
                 <input
                   type="text"
                   name="taxNumber"
                   value={formData.taxNumber}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户税号"
+                  placeholder={t.customerTaxNumberPlaceholder}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户地址</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerAddress}</label>
                 <input
                   type="text"
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户地址"
+                  placeholder={t.customerAddressPlaceholder}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">客户电话</label>
+                <label className="block text-sm font-medium text-gray-700">{t.customerPhone}</label>
                 <input
                   type="text"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
                   className="mt-1 p-2 w-full border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="请输入客户电话"
+                  placeholder={t.customerPhonePlaceholder}
                   required
                 />
               </div>
@@ -145,13 +257,13 @@
                 onClick={onClose}
                 className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
               >
-                取消
+                {t.cancel}
               </button>
               <button
                 onClick={handleSubmit}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               >
-                保存
+                {t.save}
               </button>
             </div>
           </div>
@@ -160,7 +272,7 @@
     }
 
     // Invoice Modal Component for Batch Invoicing
-    function InvoiceModal({ isOpen, onClose, onConfirm }) {
+    function InvoiceModal({ isOpen, onClose, onConfirm, t }) {
       const [customerName, setCustomerName] = React.useState("");
       const [phone, setPhone] = React.useState("");
       const [taxId, setTaxId] = React.useState("");
@@ -214,7 +326,7 @@
         localStorage.setItem("customers", JSON.stringify(updatedCustomers));
         setCustomerName(newCustomer.name || "");
         setPhone(newCustomer.phone || "");
-        setTaxId(newCustomer.taxNumber || "");
+        setTaxId(matchingCustomer.taxNumber || "");
       };
 
       if (!isOpen) return null;
@@ -222,35 +334,35 @@
       return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-1/3">
-            <h2 className="text-xl font-bold mb-4">填写发票信息 - 批量开票</h2>
+            <h2 className="text-xl font-bold mb-4">{t.invoiceInfo}</h2>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">客户名称</label>
+              <label className="block text-sm font-medium mb-1">{t.customerName}</label>
               <input
                 type="text"
                 value={customerName}
                 onChange={handleCustomerNameChange}
-                placeholder="输入客户名称"
+                placeholder={t.customerNamePlaceholder}
                 className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                 autoFocus
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">电话</label>
+              <label className="block text-sm font-medium mb-1">{t.customerPhone}</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={handlePhoneChange}
-                placeholder="输入电话号码"
+                placeholder={t.customerPhonePlaceholder}
                 className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">税号</label>
+              <label className="block text-sm font-medium mb-1">{t.customerTaxNumber}</label>
               <input
                 type="text"
                 value={taxId}
                 onChange={handleTaxIdChange}
-                placeholder="输入税号"
+                placeholder={t.customerTaxNumberPlaceholder}
                 className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -258,24 +370,25 @@
               onClick={handleConfirm}
               className="bg-blue-600 text-white p-2 rounded w-full mb-4 hover:bg-blue-700"
             >
-              确认
+              {t.confirm}
             </button>
             <button
               onClick={() => setIsCreateCustomerModalOpen(true)}
               className="bg-green-600 text-white p-2 rounded w-full mb-4 hover:bg-green-700"
             >
-              创建客户
+              {t.createCustomer}
             </button>
             <button
               onClick={onClose}
               className="bg-gray-500 text-white p-2 rounded w-full hover:bg-gray-600"
             >
-              取消
+              {t.cancel}
             </button>
             <CreateCustomerModal
               isOpen={isCreateCustomerModalOpen}
               onClose={() => setIsCreateCustomerModalOpen(false)}
               onSave={handleSaveCustomer}
+              t={t}
             />
           </div>
         </div>
@@ -290,27 +403,42 @@
       const [filteredTickets, setFilteredTickets] = React.useState([]);
       const [selectedTickets, setSelectedTickets] = React.useState([]);
       const [isInvoiceModalOpen, setIsInvoiceModalOpen] = React.useState(false);
+      const [language, setLanguage] = React.useState(localStorage.getItem('language') || 'zh');
+
+      // Update document language and title on language change
+      React.useEffect(() => {
+        document.documentElement.lang = language;
+        document.title = translations[language].title;
+      }, [language]);
+
+      // Handle language change
+      const handleLanguageChange = (lang) => {
+        setLanguage(lang);
+        localStorage.setItem('language', lang);
+      };
 
       // Load tickets from localStorage and listen for storage changes
       React.useEffect(() => {
         const loadTickets = () => {
           try {
             const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+            const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+            const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
             const normalizedTickets = savedTickets.map(ticket => ({
               ...ticket,
-              type: ticket.type || "小票",
+              type: ticket.type || translations[language].ticket,
               id: ticket.id || `TICKET-${Date.now()}`,
-              timestamp: ticket.timestamp || new Date().toISOString().split('T')[0],
+              timestamp: ticket.timestamp || new Date().toLocaleString(language === 'es' ? 'es-ES' : 'zh-CN'),
               total: ticket.total || 0,
               items: ticket.items || [],
-              customerName: ticket.customerName || "普通客户"
+              customerName: ticket.customerName || translations[language].defaultCustomer
             }));
             const receiptTickets = normalizedTickets.filter(ticket => 
-              ticket.type === "小票" && 
-              !selectedTickets.some(selected => selected.id === ticket.id)
+              ticket.type === translations[language].ticket && 
+              !selectedTickets.some(selected => selected.id === ticket.id) &&
+              !invoicedTicketIds.includes(ticket.id)
             );
             setFilteredTickets(receiptTickets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-            console.log('Loaded tickets:', receiptTickets);
           } catch (error) {
             console.error('Error loading tickets:', error);
             setFilteredTickets([]);
@@ -320,7 +448,7 @@
         loadTickets();
         window.addEventListener('storage', loadTickets);
         return () => window.removeEventListener('storage', loadTickets);
-      }, [selectedTickets]);
+      }, [selectedTickets, language]);
 
       // Debounce function to limit rapid filtering
       const debounce = (func, delay) => {
@@ -335,18 +463,21 @@
       const filterTickets = (ticketId, amount, date) => {
         try {
           const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+          const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+          const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
           const normalizedTickets = savedTickets.map(ticket => ({
             ...ticket,
-            type: ticket.type || "小票",
+            type: ticket.type || translations[language].ticket,
             id: ticket.id || `TICKET-${Date.now()}`,
-            timestamp: ticket.timestamp || new Date().toISOString().split('T')[0],
+            timestamp: ticket.timestamp || new Date().toLocaleString(language === 'es' ? 'es-ES' : 'zh-CN'),
             total: ticket.total || 0,
             items: ticket.items || [],
-            customerName: ticket.customerName || "普通客户"
+            customerName: ticket.customerName || translations[language].defaultCustomer
           }));
           const receiptTickets = normalizedTickets.filter(ticket => 
-            ticket.type === "小票" && 
-            !selectedTickets.some(selected => selected.id === ticket.id)
+            ticket.type === translations[language].ticket && 
+            !selectedTickets.some(selected => selected.id === ticket.id) &&
+            !invoicedTicketIds.includes(ticket.id)
           );
           const filtered = receiptTickets.filter((ticket) => {
             const matchesTicketId = ticketId 
@@ -361,7 +492,6 @@
             return matchesTicketId && matchesAmount && matchesDate;
           });
           setFilteredTickets(filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-          console.log('Filtered tickets:', filtered);
         } catch (error) {
           console.error('Error filtering tickets:', error);
           setFilteredTickets([]);
@@ -371,7 +501,7 @@
       // Debounced filter function
       const debouncedFilter = React.useCallback(debounce((ticketId, amount) => {
         filterTickets(ticketId, amount, searchDate);
-      }, 300), [searchDate, selectedTickets]);
+      }, 300), [searchDate, selectedTickets, language]);
 
       // Handle ticket ID change
       const handleTicketIdChange = (e) => {
@@ -402,27 +532,29 @@
         if (!searchTicketId && !searchAmount && !searchDate) {
           try {
             const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+            const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+            const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
             const normalizedTickets = savedTickets.map(ticket => ({
               ...ticket,
-              type: ticket.type || "小票",
+              type: ticket.type || translations[language].ticket,
               id: ticket.id || `TICKET-${Date.now()}`,
-              timestamp: ticket.timestamp || new Date().toISOString().split('T')[0],
+              timestamp: ticket.timestamp || new Date().toLocaleString(language === 'es' ? 'es-ES' : 'zh-CN'),
               total: ticket.total || 0,
               items: ticket.items || [],
-              customerName: ticket.customerName || "普通客户"
+              customerName: ticket.customerName || translations[language].defaultCustomer
             }));
             const receiptTickets = normalizedTickets.filter(ticket => 
-              ticket.type === "小票" && 
-              !selectedTickets.some(selected => selected.id === ticket.id)
+              ticket.type === translations[language].ticket && 
+              !selectedTickets.some(selected => selected.id === ticket.id) &&
+              !invoicedTicketIds.includes(ticket.id)
             );
             setFilteredTickets(receiptTickets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-            console.log('Reset tickets:', receiptTickets);
           } catch (error) {
             console.error('Error resetting tickets:', error);
             setFilteredTickets([]);
           }
         }
-      }, [searchTicketId, searchAmount, searchDate, selectedTickets]);
+      }, [searchTicketId, searchAmount, searchDate, selectedTickets, language]);
 
       // Move ticket to selected (right container)
       const handleAddTicket = (ticket) => {
@@ -445,11 +577,11 @@
       // Handle batch invoice creation
       const handleCreateInvoice = () => {
         if (selectedTickets.length === 0) {
-          alert("请至少选择一张小票进行开票！");
+          alert(translations[language].errorNoTicketsSelected);
           return;
         }
 
-        const hasCustomerInfo = selectedTickets.every(ticket => ticket.customerName && ticket.customerName !== "普通客户");
+        const hasCustomerInfo = selectedTickets.every(ticket => ticket.customerName && ticket.customerName !== translations[language].defaultCustomer);
         if (!hasCustomerInfo) {
           setIsInvoiceModalOpen(true);
           return;
@@ -473,7 +605,7 @@
 
           const invoice = {
             id: invoiceId,
-            timestamp: new Date().toISOString().split('T')[0],
+            timestamp: new Date().toLocaleString(language === 'es' ? 'es-ES' : 'zh-CN'),
             tickets: selectedTickets.map(ticket => ticket.id),
             items,
             total: totalAmount,
@@ -485,18 +617,18 @@
           const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
           localStorage.setItem("invoices", JSON.stringify([...savedInvoices, invoice]));
 
-          const updatedTickets = savedTickets.map(ticket => 
-            selectedTickets.some(t => t.id === ticket.id)
-              ? { ...ticket, type: "发票", customerName: customer.customerName, phone: customer.phone, taxId: customer.taxId }
-              : ticket
+          // Remove selected tickets from localStorage
+          const updatedTickets = savedTickets.filter(ticket => 
+            !selectedTickets.some(t => t.id === ticket.id)
           );
           localStorage.setItem("tickets", JSON.stringify(updatedTickets));
           setSelectedTickets([]);
-          setFilteredTickets(prev => prev.filter(t => !updatedTickets.some(ut => ut.id === t.id && ut.type === "发票")));
-          alert(`发票 ${invoice.id} 已生成，总金额 €${totalAmount.toFixed(2)}。请返回票据列表查看更新。`);
+          setFilteredTickets(prev => prev.filter(t => updatedTickets.some(ut => ut.id === t.id)));
+          // Redirect to tickets.html
+          window.location.href = 'tickets.html';
         } catch (error) {
           console.error('Error generating invoice:', error);
-          alert('生成发票时出错，请查看控制台或联系支持。');
+          alert(translations[language].errorGenerateInvoice);
         }
       };
 
@@ -506,54 +638,66 @@
         setIsInvoiceModalOpen(false);
       };
 
+      const t = translations[language];
+
       return (
-        <ErrorBoundary>
+        <ErrorBoundary t={t}>
           <div className="flex h-screen">
             <div className="w-16 bg-gray-900 text-white flex flex-col items-center py-4 fixed h-full shadow-lg">
-              <h1 className="text-lg font-bold mb-8">POS</h1>
+              <h1 className="text-lg font-bold mb-8">{t.pos}</h1>
               <nav className="flex flex-col space-y-4">
-                <a href="index.html" className="p-2 rounded-full hover:bg-gray-700" title="销售">🛒</a>
-                <a href="#" className="p-2 rounded-full hover:bg-gray-700" title="库存">📦</a>
-                <a href="#" className="p-2 rounded-full hover:bg-gray-700" title="会员">👤</a>
-                <a href="#" className="p-2 rounded-full hover:bg-gray-700" title="支付">💳</a>
-                <a href="#" className="p-2 rounded-full hover:bg-gray-700" title="报告">📊</a>
-                <a href="cliente.html" className="p-2 rounded-full hover:bg-gray-700" title="用户">🔒</a>
-                <a href="tickets.html" className="p-2 rounded-full bg-blue-600" title="票据">🎫</a>
-                <a href="deuda.html" className="p-2 rounded-full hover:bg-gray-700" title="记账">📋</a>
+                <a href="index.html" className="p-2 rounded-full hover:bg-gray-700" title={t.sales}>🛒</a>
+                <a href="#" className="p-2 rounded-full hover:bg-gray-700" title={t.inventory}>📦</a>
+                <a href="#" className="p-2 rounded-full hover:bg-gray-700" title={t.membership}>👤</a>
+                <a href="#" className="p-2 rounded-full hover:bg-gray-700" title={t.payments}>💳</a>
+                <a href="#" className="p-2 rounded-full hover:bg-gray-700" title={t.reports}>📊</a>
+                <a href="cliente.html" className="p-2 rounded-full hover:bg-gray-700" title={t.users}>🔒</a>
+                <a href="tickets.html" className="p-2 rounded-full bg-blue-600" title={t.tickets}>🎫</a>
+                <a href="deuda.html" className="p-2 rounded-full hover:bg-gray-700" title={t.debt}>📋</a>
               </nav>
             </div>
             <div className="ml-16 w-full bg-white p-6 h-screen overflow-auto">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">批量开票</h2>
+                <div className="flex items-center">
+                  <h2 className="text-2xl font-bold mr-4">{t.batchInvoice}</h2>
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    className="p-1 rounded bg-gray-200 text-sm"
+                  >
+                    <option value="es">{t.spanish}</option>
+                    <option value="zh">{t.chinese}</option>
+                  </select>
+                </div>
                 <a href="tickets.html" className="bg-gray-500 text-white p-3 rounded text-lg hover:bg-gray-600">
-                  返回
+                  {t.return}
                 </a>
               </div>
               <div className="mb-6 space-y-4">
                 <div className="flex space-x-4">
                   <div className="flex-1">
-                    <label className="block text-sm font-medium mb-1">票号</label>
+                    <label className="block text-sm font-medium mb-1">{t.ticketId}</label>
                     <input
                       type="text"
                       value={searchTicketId}
                       onChange={handleTicketIdChange}
-                      placeholder="输入票号"
+                      placeholder={t.ticketIdPlaceholder}
                       className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-sm font-medium mb-1">金额</label>
+                    <label className="block text-sm font-medium mb-1">{t.amount}</label>
                     <input
                       type="number"
                       step="0.01"
                       value={searchAmount}
                       onChange={handleAmountChange}
-                      placeholder="输入金额"
+                      placeholder={t.amountPlaceholder}
                       className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-sm font-medium mb-1">日期</label>
+                    <label className="block text-sm font-medium mb-1">{t.date}</label>
                     <input
                       type="date"
                       value={searchDate}
@@ -566,23 +710,23 @@
                   onClick={handleSearch}
                   className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
-                  查询
+                  {t.search}
                 </button>
               </div>
               <div className="flex space-x-4 h-[calc(100vh-200px)]">
                 <div className="w-1/2 bg-gray-50 p-4 rounded-lg shadow overflow-auto">
-                  <h3 className="text-lg font-semibold mb-4">可用小票</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t.availableTickets}</h3>
                   {filteredTickets.length === 0 ? (
-                    <p className="text-gray-500">没有找到符合条件的小票</p>
+                    <p className="text-gray-500">{t.noTickets}</p>
                   ) : (
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="bg-gray-200">
-                          <th className="border p-3 text-left">票号</th>
-                          <th className="border p-3 text-left">时间</th>
-                          <th className="border p-3 text-left">客户</th>
-                          <th className="border p-3 text-left">总计</th>
-                          <th className="border p-3 text-left">操作</th>
+                          <th className="border p-3 text-left">{t.ticketId}</th>
+                          <th className="border p-3 text-left">{t.date}</th>
+                          <th className="border p-3 text-left">{t.customer}</th>
+                          <th className="border p-3 text-left">{t.total}</th>
+                          <th className="border p-3 text-left">{t.actions}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -596,7 +740,7 @@
                               <button
                                 onClick={() => handleAddTicket(ticket)}
                                 className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-                                disabled={!ticket.id || !ticket.timestamp || !ticket.total}
+                                disabled={!(ticket.id && ticket.timestamp && ticket.total)}
                               >
                                 ➡️
                               </button>
@@ -608,18 +752,18 @@
                   )}
                 </div>
                 <div className="w-1/2 bg-gray-50 p-4 rounded-lg shadow overflow-auto relative">
-                  <h3 className="text-lg font-semibold mb-4">已选小票</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t.selectedTickets}</h3>
                   {selectedTickets.length === 0 ? (
-                    <p className="text-gray-500">暂无已选小票</p>
+                    <p className="text-gray-500">{t.noSelectedTickets}</p>
                   ) : (
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="bg-gray-200">
-                          <th className="border p-3 text-left">票号</th>
-                          <th className="border p-3 text-left">时间</th>
-                          <th className="border p-3 text-left">客户</th>
-                          <th className="border p-3 text-left">总计</th>
-                          <th className="border p-3 text-left">操作</th>
+                          <th className="border p-3 text-left">{t.ticketId}</th>
+                          <th className="border p-3 text-left">{t.date}</th>
+                          <th className="border p-3 text-left">{t.customer}</th>
+                          <th className="border p-3 text-left">{t.total}</th>
+                          <th className="border p-3 text-left">{t.actions}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -648,13 +792,13 @@
                         onClick={handleClearTickets}
                         className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
                       >
-                        清空
+                        {t.clear}
                       </button>
                       <button
                         onClick={handleCreateInvoice}
                         className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                       >
-                        开票 (共 €{selectedTickets.reduce((sum, ticket) => sum + (ticket.total || 0), 0).toFixed(2)})
+                        {t.createInvoice} ({t.totalAmount.replace('{amount}', selectedTickets.reduce((sum, ticket) => sum + (ticket.total || 0), 0).toFixed(2))})
                       </button>
                     </div>
                   )}
@@ -664,6 +808,7 @@
                 isOpen={isInvoiceModalOpen}
                 onClose={() => setIsInvoiceModalOpen(false)}
                 onConfirm={handleInvoiceConfirm}
+                t={t}
               />
             </div>
           </div>

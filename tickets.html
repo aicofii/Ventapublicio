@@ -881,13 +881,14 @@
                             >
                               {t.viewDetails}
                             </button>
-                            <button
-                              onClick={() => handleInvoice(ticket)}
-                              className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                              disabled={ticket.type === t.invoiceType || ticket.isInvoiced}
-                            >
-                              {t.invoice}
-                            </button>
+                            {!ticket.isInvoiced && ticket.type !== t.invoiceType && (
+                              <button
+                                onClick={() => handleInvoice(ticket)}
+                                className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                              >
+                                {t.invoice}
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}

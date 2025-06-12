@@ -27,9 +27,7 @@
 </head>
 <body className="bg-gray-100 font-sans">
   <!-- Fallback message if JavaScript fails -->
-  <div id="error-message" className="hidden text-center p-4 text-red-600">
-    
-  </div>
+  <div id="error-message" className="hidden text-center p-4 text-red-600"></div>
   <!-- Root element for React -->
   <div id="root"></div>
 
@@ -77,6 +75,8 @@
         total: "总计",
         actions: "操作",
         totalAmount: "总计",
+        originalPrice: "原价",
+        discountedPrice: "折扣价",
         restore: "恢复",
         checkout: "结算",
         addProduct: "添加产品",
@@ -100,6 +100,7 @@
         card: "刷卡",
         cash: "现金",
         debtPayment: "记账",
+        addCustomer: "添加客户",
         amountDue: "应付金额",
         receivedAmount: "实收金额",
         change: "找零",
@@ -166,6 +167,8 @@
         total: "Total",
         actions: "Acciones",
         totalAmount: "Total",
+        originalPrice: "Precio Original",
+        discountedPrice: "Precio con Descuento",
         restore: "Restablecer",
         checkout: "Pagar",
         addProduct: "Agregar Producto",
@@ -189,6 +192,7 @@
         card: "Tarjeta",
         cash: "Efectivo",
         debtPayment: "A Cuenta",
+        addCustomer: "Agregar Cliente",
         amountDue: "Monto a Pagar",
         receivedAmount: "Monto Recibido",
         change: "Cambio",
@@ -594,7 +598,7 @@
     }
 
     // Select Customer Modal Component
-    function SelectCustomerModal({ isOpen, onClose, onSelectCustomer, customers, cart, discount, onClearCart, t }) {
+    function SelectCustomerModal({ isOpen, onClose, onSelectCustomer, customers, cart, discount, onClearCart, t, isDebtPayment }) {
       const [formData, setFormData] = React.useState({
         name: '',
         phone: '',
@@ -643,25 +647,33 @@
           alert(t.errorCustomerSelectRequired);
           return;
         }
-        var subtotal = cart.reduce(function(sum, item) {
-          return sum + item.price * item.quantity;
-        }, 0);
-        var discountAmount = subtotal * (discount / 100);
-        var total = (subtotal - discountAmount).toFixed(2);
-        var debt = {
-          id: "debt-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
-          cart: cart.slice(),
-          discount: discount,
-          total: parseFloat(total),
-          timestamp: new Date().toLocaleString(t.lang === 'es' ? "es-ES" : "zh-CN"),
-          customerName: formData.name,
-          customerPhone: formData.phone,
-          customerTaxNumber: formData.taxNumber || '',
-          status: 'pending'
-        };
-        var savedDebts = JSON.parse(localStorage.getItem('debts') || '[]');
-        localStorage.setItem('debts', JSON.stringify(savedDebts.concat([debt])));
-        onClearCart();
+        if (isDebtPayment) {
+          var subtotal = cart.reduce(function(sum, item) {
+            return sum + item.price * item.quantity;
+          }, 0);
+          var discountAmount = subtotal * (discount / 100);
+          var total = (subtotal - discountAmount).toFixed(2);
+          var debt = {
+            id: "debt-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
+            cart: cart.slice(),
+            discount: discount,
+            total: parseFloat(total),
+            timestamp: new Date().toLocaleString(t.lang === 'es' ? "es-ES" : "zh-CN"),
+            customerName: formData.name,
+            customerPhone: formData.phone,
+            customerTaxNumber: formData.taxNumber || '',
+            status: 'pending'
+          };
+          var savedDebts = JSON.parse(localStorage.getItem('debts') || '[]');
+          localStorage.setItem('debts', JSON.stringify(savedDebts.concat([debt])));
+          onClearCart();
+        } else {
+          onSelectCustomer({
+            name: formData.name,
+            phone: formData.phone,
+            taxNumber: formData.taxNumber || ''
+          });
+        }
         setFormData({ name: '', phone: '', taxNumber: '' });
         onClose();
       }
@@ -741,7 +753,7 @@
     }
 
     // Cash Payment Modal Component
-    function CashPaymentModal({ isOpen, onClose, onConfirm, cart, discount, t }) {
+    function CashPaymentModal({ isOpen, onClose, onConfirm, cart, discount, t, selectedCustomer }) {
       const [receivedAmount, setReceivedAmount] = React.useState("");
 
       var total = cart.reduce(function(sum, item) {
@@ -775,7 +787,10 @@
           discount: discount,
           paymentMethod: "cash",
           receivedAmount: parseFloat(receivedAmount),
-          change: parseFloat(change)
+          change: parseFloat(change),
+          customerName: selectedCustomer?.name || null,
+          customerPhone: selectedCustomer?.phone || null,
+          customerTaxNumber: selectedCustomer?.taxNumber || null
         };
         var savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
         localStorage.setItem("tickets", JSON.stringify(savedTickets.concat([ticket])));
@@ -846,6 +861,8 @@
       const [paymentMethod, setPaymentMethod] = React.useState(null);
       const [isSelectCustomerModalOpen, setIsSelectCustomerModalOpen] = React.useState(false);
       const [isCashModalOpen, setIsCashModalOpen] = React.useState(false);
+      const [selectedCustomer, setSelectedCustomer] = React.useState(null);
+      const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = React.useState(false);
       const [customers, setCustomers] = React.useState(function() {
         var saved = localStorage.getItem('customers');
         return saved ? JSON.parse(saved) : [];
@@ -861,31 +878,40 @@
           setIsCashModalOpen(true);
           return;
         }
-        var total = cart.reduce(function(sum, item) {
-          return sum + item.price * item.quantity;
-        }, 0);
-        var discountAmount = total * (discount / 100);
-        var finalTotal = (total - discountAmount).toFixed(2);
-        var ticket = {
-          id: "ticket-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
-          timestamp: new Date().toLocaleString(t.lang === 'es' ? "es-ES" : "zh-CN"),
-          total: parseFloat(finalTotal),
-          items: cart.map(function(item) {
-            return { name: t.lang === 'es' ? item.name_es || item.name : item.name, quantity: item.quantity, price: item.price };
-          }),
-          discount: discount,
-          paymentMethod: method
-        };
-        var savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-        localStorage.setItem("tickets", JSON.stringify(savedTickets.concat([ticket])));
-        onConfirm(method, ticket);
-        onClose();
+        if (method === "card") {
+          var total = cart.reduce(function(sum, item) {
+            return sum + item.price * item.quantity;
+          }, 0);
+          var discountAmount = total * (discount / 100);
+          var finalTotal = (total - discountAmount).toFixed(2);
+          var ticket = {
+            id: "ticket-" + Date.now() + "-" + Math.random().toString(36).slice(2, 9),
+            timestamp: new Date().toLocaleString(t.lang === 'es' ? "es-ES" : "zh-CN"),
+            total: parseFloat(finalTotal),
+            items: cart.map(function(item) {
+              return { name: t.lang === 'es' ? item.name_es || item.name : item.name, quantity: item.quantity, price: item.price };
+            }),
+            discount: discount,
+            paymentMethod: method,
+            customerName: selectedCustomer?.name || null,
+            customerPhone: selectedCustomer?.phone || null,
+            customerTaxNumber: selectedCustomer?.taxNumber || null
+          };
+          var savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
+          localStorage.setItem("tickets", JSON.stringify(savedTickets.concat([ticket])));
+          onConfirm(method, ticket);
+          setSelectedCustomer(null);
+          onClose();
+        }
       }
 
       function handleSelectCustomer(newCustomer) {
         setCustomers(function(prev) {
           return prev.concat([newCustomer]);
         });
+        setSelectedCustomer(newCustomer);
+        setIsSelectCustomerModalOpen(false);
+        setIsAddCustomerModalOpen(false);
       }
 
       if (!isOpen) return null;
@@ -920,6 +946,15 @@
               >
                 {t.debtPayment}
               </button>
+              <button
+                onClick={function() {
+                  setPaymentMethod("addCustomer");
+                  setIsAddCustomerModalOpen(true);
+                }}
+                className={paymentMethod === "addCustomer" ? "p-3 rounded text-lg bg-blue-600 text-white" : "p-3 rounded text-lg bg-gray-200 hover:bg-gray-300"}
+              >
+                {t.addCustomer}
+              </button>
             </div>
             <button
               onClick={onClose}
@@ -939,6 +974,20 @@
               discount={discount}
               onClearCart={onClearCart}
               t={t}
+              isDebtPayment={true}
+            />
+            <SelectCustomerModal
+              isOpen={isAddCustomerModalOpen}
+              onClose={function() {
+                setIsAddCustomerModalOpen(false);
+              }}
+              onSelectCustomer={handleSelectCustomer}
+              customers={customers}
+              cart={cart}
+              discount={discount}
+              onClearCart={onClearCart}
+              t={t}
+              isDebtPayment={false}
             />
             <CashPaymentModal
               isOpen={isCashModalOpen}
@@ -950,6 +999,7 @@
               cart={cart}
               discount={discount}
               t={t}
+              selectedCustomer={selectedCustomer}
             />
           </div>
         </div>
@@ -1035,7 +1085,10 @@
           return sum + item.price * item.quantity;
         }, 0);
         var discountAmount = subtotal * (discount / 100);
-        return (subtotal - discountAmount).toFixed(2);
+        return {
+          originalPrice: subtotal.toFixed(2),
+          discountedPrice: (subtotal - discountAmount).toFixed(2)
+        };
       }
 
       function handlePaymentConfirm(paymentMethod, ticket) {
@@ -1275,8 +1328,15 @@
                       </tbody>
                     </table>
                   )}
-                  <div className="absolute bottom-4 left-4 flex items-center space-x-2">
-                    <p className="text-lg font-semibold">{translations[language].totalAmount}: €{calculateTotal()}</p>
+                  <div className="absolute bottom-4 left-4 flex flex-col space-y-2">
+                    {discount > 0 ? (
+                      <>
+                        <p className="text-lg font-semibold">{translations[language].originalPrice}: €{calculateTotal().originalPrice}</p>
+                        <p className="text-lg font-semibold">{translations[language].discountedPrice}: €{calculateTotal().discountedPrice}</p>
+                      </>
+                    ) : (
+                      <p className="text-lg font-semibold">{translations[language].totalAmount}: €{calculateTotal().discountedPrice}</p>
+                    )}
                     {discount > 0 && (
                       <button
                         onClick={resetDiscount}

@@ -104,7 +104,9 @@
         selectLanguage: "选择语言",
         spanish: "西班牙语",
         chinese: "中文",
-        errorRender: "渲染应用程序时出错：{error}。请查看浏览器控制台或联系支持。"
+        errorRender: "渲染应用程序时出错：{error}。请查看浏览器控制台或联系支持。",
+        invoiceId: "发票号",
+        includedInInvoice: "已归属发票"
       },
       es: {
         title: "Lista de Tickets - Supermercado",
@@ -177,7 +179,9 @@
         selectLanguage: "Seleccionar Idioma",
         spanish: "Español",
         chinese: "Chino",
-        errorRender: "Error al renderizar la aplicación: {error}. Consulta la consola del navegador o contacta al soporte."
+        errorRender: "Error al renderizar la aplicación: {error}. Consulta la consola del navegador o contacta al soporte.",
+        invoiceId: "Número de Factura",
+        includedInInvoice: "Incluido en Factura"
       }
     };
 
@@ -316,6 +320,9 @@
             )}
             {ticket.paymentMethod && (
               <p className="mb-2"><strong>{t.paymentMethod}：</strong>{ticket.paymentMethod === "card" ? t.card : t.cash}</p>
+            )}
+            {ticket.isInvoiced && ticket.invoiceId && (
+              <p className="mb-2"><strong>{t.includedInInvoice}：</strong>{ticket.invoiceId}</p>
             )}
             <p className="mb-4"><strong>{t.total}：</strong>€{ticket.total.toFixed(2)}</p>
             {ticket.tickets && (
@@ -665,12 +672,10 @@
           // Initialize type as "小票" (or translation equivalent) for tickets if not present
           const updatedTickets = savedTickets.map(ticket => ({
             ...ticket,
-            type: ticket.type || translations[language].ticket
+            type: ticket.type || translations[language].ticket,
+            isInvoiced: ticket.isInvoiced || false,
+            invoiceId: ticket.invoiceId || null
           }));
-
-          // Filter out tickets that are included in any invoice's tickets array
-          const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
-          const filteredTickets = updatedTickets.filter(ticket => !invoicedTicketIds.includes(ticket.id));
 
           // Format invoices to match ticket structure for display
           const formattedInvoices = savedInvoices.map(invoice => ({
@@ -681,7 +686,7 @@
           }));
 
           // Combine tickets and invoices, sort by timestamp in descending order
-          const combinedTickets = [...filteredTickets, ...formattedInvoices].sort((a, b) => 
+          const combinedTickets = [...updatedTickets, ...formattedInvoices].sort((a, b) => 
             new Date(b.timestamp) - new Date(a.timestamp)
           );
 
@@ -707,7 +712,7 @@
       };
 
       const handleInvoice = (ticket) => {
-        if (ticket.type === translations[language].invoiceType) return; // Prevent invoicing an invoice
+        if (ticket.type === translations[language].invoiceType || ticket.isInvoiced) return; // Prevent invoicing an invoice or invoiced ticket
         setCurrentInvoiceTicketId(ticket.id);
         if (ticket.customerName && ticket.customerName !== translations[language].defaultCustomer) {
           setIsConfirmInvoiceModalOpen(true);
@@ -863,7 +868,7 @@
                     </thead>
                     <tbody>
                       {currentTickets.map((ticket) => (
-                        <tr key={ticket.id}>
+                        <tr key={ticket.id} className={ticket.isInvoiced ? 'bg-red-100' : ''}>
                           <td className="border p-3">{ticket.id}</td>
                           <td className="border p-3">{ticket.type}</td>
                           <td className="border p-3">{formatDate(ticket.timestamp)}</td>
@@ -879,7 +884,7 @@
                             <button
                               onClick={() => handleInvoice(ticket)}
                               className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                              disabled={ticket.type === t.invoiceType}
+                              disabled={ticket.type === t.invoiceType || ticket.isInvoiced}
                             >
                               {t.invoice}
                             </button>
@@ -916,13 +921,11 @@
                 isOpen={isSearchPanelOpen}
                 onClose={() => setIsSearchPanelOpen(false)}
                 onSearch={handleSearch}
-                tickets={[...JSON.parse(localStorage.getItem("tickets") || "[]").filter(ticket => {
-                  const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-                  const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
-                  return !invoicedTicketIds.includes(ticket.id);
-                }).map(ticket => ({
+                tickets={[...JSON.parse(localStorage.getItem("tickets") || "[]").map(ticket => ({
                   ...ticket,
-                  type: ticket.type || t.ticket
+                  type: ticket.type || t.ticket,
+                  isInvoiced: ticket.isInvoiced || false,
+                  invoiceId: ticket.invoiceId || null
                 })), 
                  ...JSON.parse(localStorage.getItem("invoices") || "[]").map(invoice => ({
                    ...invoice,

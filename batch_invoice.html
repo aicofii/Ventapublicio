@@ -50,6 +50,8 @@
         ticketId: "票号",
         amount: "金额",
         date: "日期",
+        customerName: "客户名称",
+        customerNamePlaceholder: "输入客户名称",
         availableTickets: "可用小票",
         noTickets: "没有找到符合条件的小票",
         selectedTickets: "已选小票",
@@ -104,6 +106,8 @@
         ticketId: "Número de Ticket",
         amount: "Monto",
         date: "Fecha",
+        customerName: "Nombre del Cliente",
+        customerNamePlaceholder: "Ingresa el nombre del cliente",
         availableTickets: "Tickets Disponibles",
         noTickets: "No se encontraron tickets que coincidan con los criterios.",
         selectedTickets: "Tickets Seleccionados",
@@ -326,7 +330,7 @@
         localStorage.setItem("customers", JSON.stringify(updatedCustomers));
         setCustomerName(newCustomer.name || "");
         setPhone(newCustomer.phone || "");
-        setTaxId(matchingCustomer.taxNumber || "");
+        setTaxId(newCustomer.taxNumber || "");
       };
 
       if (!isOpen) return null;
@@ -395,11 +399,86 @@
       );
     }
 
+    // Customer Search Input Component with Fuzzy Search
+    function CustomerSearchInput({ value, onChange, placeholder, t, language }) {
+      const [suggestions, setSuggestions] = React.useState([]);
+      const [showSuggestions, setShowSuggestions] = React.useState(false);
+      const inputRef = React.useRef(null);
+
+      // Load customers from localStorage
+      const customers = JSON.parse(localStorage.getItem("customers") || "[]");
+
+      // Handle input change and update suggestions
+      const handleInputChange = (e) => {
+        const inputValue = e.target.value;
+        onChange(e);
+        if (inputValue.trim()) {
+          const filteredSuggestions = customers
+            .filter(customer => 
+              customer.name && 
+              customer.name.toLowerCase().includes(inputValue.toLowerCase())
+            )
+            .map(customer => customer.name);
+          setSuggestions(filteredSuggestions);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      };
+
+      // Handle suggestion click
+      const handleSuggestionClick = (suggestion) => {
+        onChange({ target: { value: suggestion } });
+        setSuggestions([]);
+        setShowSuggestions(false);
+      };
+
+      // Handle click outside to close suggestions
+      React.useEffect(() => {
+        const handleClickOutside = (event) => {
+          if (inputRef.current && !inputRef.current.contains(event.target)) {
+            setShowSuggestions(false);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
+
+      return (
+        <div className="relative flex-1">
+          <label className="block text-sm font-medium mb-1">{t.customerName}</label>
+          <input
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={handleInputChange}
+            placeholder={t.customerNamePlaceholder}
+            className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute z-10 w-full bg-white border rounded shadow-lg mt-1 max-h-60 overflow-auto">
+              {suggestions.map((suggestion, index) => (
+                <li
+                  key={index}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className="p-2 hover:bg-blue-100 cursor-pointer"
+                >
+                  {suggestion}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    }
+
     // Batch Invoice App Component
     function BatchInvoiceApp() {
       const [searchTicketId, setSearchTicketId] = React.useState("");
       const [searchAmount, setSearchAmount] = React.useState("");
       const [searchDate, setSearchDate] = React.useState("");
+      const [searchCustomerName, setSearchCustomerName] = React.useState("");
       const [filteredTickets, setFilteredTickets] = React.useState([]);
       const [selectedTickets, setSelectedTickets] = React.useState([]);
       const [isInvoiceModalOpen, setIsInvoiceModalOpen] = React.useState(false);
@@ -423,7 +502,6 @@
           try {
             const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
             const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-            const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
             const normalizedTickets = savedTickets.map(ticket => ({
               ...ticket,
               type: ticket.type || translations[language].ticket,
@@ -431,12 +509,13 @@
               timestamp: ticket.timestamp || new Date().toLocaleString(language === 'es' ? 'es-ES' : 'zh-CN'),
               total: ticket.total || 0,
               items: ticket.items || [],
-              customerName: ticket.customerName || translations[language].defaultCustomer
+              customerName: ticket.customerName || translations[language].defaultCustomer,
+              isInvoiced: ticket.isInvoiced || false,
+              invoiceId: ticket.invoiceId || null
             }));
             const receiptTickets = normalizedTickets.filter(ticket => 
               ticket.type === translations[language].ticket && 
-              !selectedTickets.some(selected => selected.id === ticket.id) &&
-              !invoicedTicketIds.includes(ticket.id)
+              !selectedTickets.some(selected => selected.id === ticket.id)
             );
             setFilteredTickets(receiptTickets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
           } catch (error) {
@@ -460,11 +539,9 @@
       };
 
       // Filter tickets based on search inputs
-      const filterTickets = (ticketId, amount, date) => {
+      const filterTickets = (ticketId, amount, date, customerName) => {
         try {
           const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-          const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-          const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
           const normalizedTickets = savedTickets.map(ticket => ({
             ...ticket,
             type: ticket.type || translations[language].ticket,
@@ -472,12 +549,13 @@
             timestamp: ticket.timestamp || new Date().toLocaleString(language === 'es' ? 'es-ES' : 'zh-CN'),
             total: ticket.total || 0,
             items: ticket.items || [],
-            customerName: ticket.customerName || translations[language].defaultCustomer
+            customerName: ticket.customerName || translations[language].defaultCustomer,
+            isInvoiced: ticket.isInvoiced || false,
+            invoiceId: ticket.invoiceId || null
           }));
           const receiptTickets = normalizedTickets.filter(ticket => 
             ticket.type === translations[language].ticket && 
-            !selectedTickets.some(selected => selected.id === ticket.id) &&
-            !invoicedTicketIds.includes(ticket.id)
+            !selectedTickets.some(selected => selected.id === ticket.id)
           );
           const filtered = receiptTickets.filter((ticket) => {
             const matchesTicketId = ticketId 
@@ -489,7 +567,10 @@
             const matchesDate = date && ticket.timestamp 
               ? ticket.timestamp.includes(date) 
               : true;
-            return matchesTicketId && matchesAmount && matchesDate;
+            const matchesCustomerName = customerName 
+              ? ticket.customerName.toLowerCase().includes(customerName.toLowerCase()) 
+              : true;
+            return matchesTicketId && matchesAmount && matchesDate && matchesCustomerName;
           });
           setFilteredTickets(filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
         } catch (error) {
@@ -499,22 +580,22 @@
       };
 
       // Debounced filter function
-      const debouncedFilter = React.useCallback(debounce((ticketId, amount) => {
-        filterTickets(ticketId, amount, searchDate);
+      const debouncedFilter = React.useCallback(debounce((ticketId, amount, customerName) => {
+        filterTickets(ticketId, amount, searchDate, customerName);
       }, 300), [searchDate, selectedTickets, language]);
 
       // Handle ticket ID change
       const handleTicketIdChange = (e) => {
         const value = e.target.value;
         setSearchTicketId(value);
-        debouncedFilter(value, searchAmount);
+        debouncedFilter(value, searchAmount, searchCustomerName);
       };
 
       // Handle amount change
       const handleAmountChange = (e) => {
         const value = e.target.value;
         setSearchAmount(value);
-        debouncedFilter(searchTicketId, value);
+        debouncedFilter(searchTicketId, value, searchCustomerName);
       };
 
       // Handle date change (no real-time filtering)
@@ -522,18 +603,23 @@
         setSearchDate(e.target.value);
       };
 
+      // Handle customer name change
+      const handleCustomerNameChange = (e) => {
+        const value = e.target.value;
+        setSearchCustomerName(value);
+        debouncedFilter(searchTicketId, searchAmount, value);
+      };
+
       // Handle search button click (for date filtering)
       const handleSearch = () => {
-        filterTickets(searchTicketId, searchAmount, searchDate);
+        filterTickets(searchTicketId, searchAmount, searchDate, searchCustomerName);
       };
 
       // Reset filteredTickets when all search inputs are empty
       React.useEffect(() => {
-        if (!searchTicketId && !searchAmount && !searchDate) {
+        if (!searchTicketId && !searchAmount && !searchDate && !searchCustomerName) {
           try {
             const savedTickets = JSON.parse(localStorage.getItem("tickets") || "[]");
-            const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-            const invoicedTicketIds = savedInvoices.flatMap(invoice => invoice.tickets || []);
             const normalizedTickets = savedTickets.map(ticket => ({
               ...ticket,
               type: ticket.type || translations[language].ticket,
@@ -541,12 +627,13 @@
               timestamp: ticket.timestamp || new Date().toLocaleString(language === 'es' ? 'es-ES' : 'zh-CN'),
               total: ticket.total || 0,
               items: ticket.items || [],
-              customerName: ticket.customerName || translations[language].defaultCustomer
+              customerName: ticket.customerName || translations[language].defaultCustomer,
+              isInvoiced: ticket.isInvoiced || false,
+              invoiceId: ticket.invoiceId || null
             }));
             const receiptTickets = normalizedTickets.filter(ticket => 
               ticket.type === translations[language].ticket && 
-              !selectedTickets.some(selected => selected.id === ticket.id) &&
-              !invoicedTicketIds.includes(ticket.id)
+              !selectedTickets.some(selected => selected.id === ticket.id)
             );
             setFilteredTickets(receiptTickets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
           } catch (error) {
@@ -554,7 +641,7 @@
             setFilteredTickets([]);
           }
         }
-      }, [searchTicketId, searchAmount, searchDate, selectedTickets, language]);
+      }, [searchTicketId, searchAmount, searchDate, searchCustomerName, selectedTickets, language]);
 
       // Move ticket to selected (right container)
       const handleAddTicket = (ticket) => {
@@ -617,10 +704,20 @@
           const savedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
           localStorage.setItem("invoices", JSON.stringify([...savedInvoices, invoice]));
 
-          // Remove selected tickets from localStorage
-          const updatedTickets = savedTickets.filter(ticket => 
-            !selectedTickets.some(t => t.id === ticket.id)
-          );
+          // Update selected tickets with isInvoiced and invoiceId instead of removing them
+          const updatedTickets = savedTickets.map(ticket => {
+            if (selectedTickets.some(t => t.id === ticket.id)) {
+              return {
+                ...ticket,
+                isInvoiced: true,
+                invoiceId: invoiceId,
+                customerName: customer.customerName,
+                phone: customer.phone,
+                taxId: customer.taxId
+              };
+            }
+            return ticket;
+          });
           localStorage.setItem("tickets", JSON.stringify(updatedTickets));
           setSelectedTickets([]);
           setFilteredTickets(prev => prev.filter(t => updatedTickets.some(ut => ut.id === t.id)));
@@ -705,6 +802,13 @@
                       className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
+                  <CustomerSearchInput
+                    value={searchCustomerName}
+                    onChange={handleCustomerNameChange}
+                    placeholder={t.customerNamePlaceholder}
+                    t={t}
+                    language={language}
+                  />
                 </div>
                 <button
                   onClick={handleSearch}

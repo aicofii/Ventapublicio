@@ -515,6 +515,7 @@
             }));
             const receiptTickets = normalizedTickets.filter(ticket => 
               ticket.type === translations[language].ticket && 
+              !ticket.isInvoiced && 
               !selectedTickets.some(selected => selected.id === ticket.id)
             );
             setFilteredTickets(receiptTickets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
@@ -555,6 +556,7 @@
           }));
           const receiptTickets = normalizedTickets.filter(ticket => 
             ticket.type === translations[language].ticket && 
+            !ticket.isInvoiced && 
             !selectedTickets.some(selected => selected.id === ticket.id)
           );
           const filtered = receiptTickets.filter((ticket) => {
@@ -633,6 +635,7 @@
             }));
             const receiptTickets = normalizedTickets.filter(ticket => 
               ticket.type === translations[language].ticket && 
+              !ticket.isInvoiced && 
               !selectedTickets.some(selected => selected.id === ticket.id)
             );
             setFilteredTickets(receiptTickets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
@@ -720,7 +723,7 @@
           });
           localStorage.setItem("tickets", JSON.stringify(updatedTickets));
           setSelectedTickets([]);
-          setFilteredTickets(prev => prev.filter(t => updatedTickets.some(ut => ut.id === t.id)));
+          setFilteredTickets(prev => prev.filter(t => updatedTickets.some(ut => ut.id === t.id && !ut.isInvoiced)));
           // Redirect to tickets.html
           window.location.href = 'tickets.html';
         } catch (error) {
